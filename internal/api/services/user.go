@@ -2,11 +2,14 @@ package services
 
 import (
 	"context"
-
-	"github.com/google/uuid"
+	"fmt"
 
 	"moonshine/internal/domain"
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
+
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type UserService struct {
@@ -32,10 +35,19 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*do
 	return user, nil
 }
 
-func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID) (*domain.User, *domain.Location, bool, error) {
-	user, err := s.userRepo.FindByID(userID)
+func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID, rdb *redis.Client) (*domain.User, *domain.Location, bool, error) {
+	user, err := r.GetUser(ctx, rdb, userID.String())
 	if err != nil {
-		return nil, nil, false, repository.ErrUserNotFound
+		fmt.Printf("redis get error %s\n", err)
+	}
+
+	if user == nil {
+		user, err := s.userRepo.FindByID(userID)
+		if err != nil {
+			return nil, nil, false, repository.ErrUserNotFound
+		}
+
+		_ = r.SetUser(ctx, rdb, userID.String(), user)
 	}
 
 	var location *domain.Location

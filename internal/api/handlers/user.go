@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
@@ -15,12 +16,13 @@ import (
 
 type UserHandler struct {
 	db               *sqlx.DB
+	rdb              *redis.Client
 	userService      *services.UserService
 	inventoryService *services.InventoryService
 	userRepo         *repository.UserRepository
 }
 
-func NewUserHandler(db *sqlx.DB) *UserHandler {
+func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
@@ -31,6 +33,7 @@ func NewUserHandler(db *sqlx.DB) *UserHandler {
 
 	return &UserHandler{
 		db:               db,
+		rdb:              rdb,
 		userService:      userService,
 		inventoryService: inventoryService,
 		userRepo:         userRepo,
@@ -54,7 +57,7 @@ func (h *UserHandler) GetCurrentUser(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.rdb)
 	if err != nil {
 		if err == repository.ErrUserNotFound {
 			return ErrNotFound(c, "user not found")
@@ -209,7 +212,7 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.rdb)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}

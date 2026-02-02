@@ -2,6 +2,7 @@ package repository
 
 import (
 	"log"
+	"moonshine/internal/config"
 	"os"
 	"testing"
 
@@ -12,7 +13,8 @@ var testDB *Database
 
 func TestMain(m *testing.M) {
 	log.Println("[TestMain] Starting test setup for repository package")
-	
+
+	cfg := config.Load()
 	err := godotenv.Load("../../.env.test")
 	if err != nil {
 		log.Printf("[TestMain] Warning: .env.test not loaded: %v", err)
@@ -21,7 +23,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log.Println("[TestMain] Attempting to connect to test database...")
-	db, err := New()
+	db, err := New(cfg)
 	if err != nil {
 		log.Fatalf("[TestMain] Failed to initialize test database: %v", err)
 	}

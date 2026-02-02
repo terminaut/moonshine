@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"moonshine/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,8 +30,9 @@ func TestMain(m *testing.M) {
 	err := godotenv.Load("../../../.env.test")
 	if err != nil {
 	}
+	cfg := config.Load()
 
-	db, err := repository.New()
+	db, err := repository.New(cfg)
 	if err != nil {
 		testDB = nil
 		code := m.Run()

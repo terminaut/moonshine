@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"moonshine/internal/config"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,7 +24,8 @@ func main() {
 		log.Println(".env not loaded, relying on environment")
 	}
 
-	db, err := repository.New()
+	cfg := config.Load()
+	db, err := repository.New(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
@@ -218,7 +220,6 @@ func seedLocations(db *sqlx.DB) error {
 		return fmt.Errorf("failed to create Moonshine location: %w", err)
 	}
 
-
 	shops := []struct {
 		slug string
 		name string
@@ -285,7 +286,6 @@ func seedLocations(db *sqlx.DB) error {
 		return fmt.Errorf("failed to create reverse location connection for wayward_pines: %w", err)
 	}
 
-
 	internalLocations := map[string]uuid.UUID{
 		"moonshine":         moonshineLocation.ID,
 		"shop_of_artifacts": shopLocations["shop_of_artifacts"],
@@ -330,7 +330,6 @@ func seedLocations(db *sqlx.DB) error {
 		}
 	}
 
-
 	cellsDir := "frontend/assets/images/locations/wayward_pines/cells"
 	files, err := filepath.Glob(filepath.Join(cellsDir, "*.png"))
 	if err != nil {
@@ -371,7 +370,6 @@ func seedLocations(db *sqlx.DB) error {
 
 		cellLocations[cellNum] = cellLocation.ID
 	}
-
 
 	for cellNum := 1; cellNum <= 64; cellNum++ {
 		cellID := cellLocations[cellNum]
@@ -439,7 +437,6 @@ func seedLocations(db *sqlx.DB) error {
 		}
 	}
 
-
 	moonshineLocation, err = locationRepo.FindBySlug("moonshine")
 	if err != nil {
 		return fmt.Errorf("failed to find moonshine location: %w", err)
@@ -467,7 +464,6 @@ func seedLocations(db *sqlx.DB) error {
 	if _, err := db.Exec(locationLocationQuery, moonshineToCell37ID, moonshineLocation.ID, cell37ID); err != nil {
 		return fmt.Errorf("failed to create connection moonshine -> 37cell: %w", err)
 	}
-
 
 	return nil
 }

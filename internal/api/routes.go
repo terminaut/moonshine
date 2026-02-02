@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/handlers"
 	jwtMiddleware "moonshine/internal/api/middleware"
@@ -22,7 +23,7 @@ import (
 // @Produce json
 // @Success 200 {string} string "ok"
 // @Router /health [get]
-func SetupRoutes(e *echo.Echo, db *sqlx.DB, cfg *config.Config) {
+func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Config) {
 	e.GET("/health", healthCheck)
 
 	wsHandler := handlers.NewWebSocketHandler(cfg)
@@ -100,7 +101,7 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, cfg *config.Config) {
 	apiGroup.Use(echojwt.WithConfig(jwtConfig))
 	apiGroup.Use(jwtMiddleware.ExtractUserIDFromJWT())
 
-	userHandler := handlers.NewUserHandler(db)
+	userHandler := handlers.NewUserHandler(db, rdb)
 	apiGroup.GET("/user/me", userHandler.GetCurrentUser)
 	apiGroup.PUT("/user/me", userHandler.UpdateCurrentUser)
 	apiGroup.GET("/users/me/inventory", userHandler.GetUserInventory)

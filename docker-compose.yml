@@ -149,12 +149,35 @@ services:
       - backend
     restart: unless-stopped
 
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+        tag: "redis"
+
 volumes:
   pgdata:
   clickhouse_data:
   prometheus_data:
   grafana_data:
   loki_data:
+  redis_data:
 
 networks:
   backend:

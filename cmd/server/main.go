@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"moonshine/internal/redis"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,16 +46,26 @@ import (
 // @description JWT token. Example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 func main() {
-	if err := godotenv.Load(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	if err := godotenv.Load("../../.env"); err != nil {
+		log.Fatalf("no .env file found, using system envs")
 	}
 
 	cfg := config.Load()
 
-	db, err := repository.New()
+	db, err := repository.New(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	rdb := redis.New(cfg)
+	if err := redis.Ping(ctx, rdb); err != nil {
+		log.Fatalf("failed to connect to redis: %v", err)
+	}
+	defer rdb.Close()
 
 	docs.SwaggerInfo.Host = cfg.HTTPAddr
 	if os.Getenv("ENV") == "production" {
@@ -71,12 +82,9 @@ func main() {
 
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
-	api.SetupRoutes(e, db.DB(), cfg)
+	api.SetupRoutes(e, db.DB(), rdb, cfg)
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
 
 	go func() {
 		if err := e.Start(cfg.HTTPAddr); err != nil && err != http.ErrServerClosed {

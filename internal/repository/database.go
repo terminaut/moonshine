@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"moonshine/internal/config"
 	"os"
 	"time"
 
@@ -13,15 +14,15 @@ type Database struct {
 	db *sqlx.DB
 }
 
-func New() (*Database, error) {
+func New(cfg *config.Config) (*Database, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		getEnv("DATABASE_HOST", "localhost"),
-		getEnv("DATABASE_PORT", "5433"),
-		getEnv("DATABASE_USER", "postgres"),
-		getEnv("DATABASE_PASSWORD", "postgres"),
-		getEnv("DATABASE_NAME", "moonshine"),
-		getEnv("DATABASE_SSL_MODE", "disable"),
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.Name,
+		cfg.Database.SSLMode,
 	)
 
 	db, err := sqlx.Connect("postgres", dsn)

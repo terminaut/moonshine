@@ -9,6 +9,7 @@ type Config struct {
 	HTTPAddr string
 	JWTKey   string
 	Database DatabaseConfig
+	Redis    RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -18,6 +19,11 @@ type DatabaseConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
+}
+
+type RedisConfig struct {
+	Addr     string
+	Password string
 }
 
 func Load() *Config {
@@ -32,6 +38,10 @@ func Load() *Config {
 			Password: getEnv("DATABASE_PASSWORD", "postgres"),
 			Name:     getEnv("DATABASE_NAME", "moonshine"),
 			SSLMode:  getEnv("DATABASE_SSL_MODE", "disable"),
+		},
+		Redis: RedisConfig{
+			Addr:     getEnv("REDIS_ADDR", "localhost"),
+			Password: getEnv("REDIS_PASSWORD", "secret"),
 		},
 	}
 }

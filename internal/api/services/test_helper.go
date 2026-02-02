@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"moonshine/internal/config"
 	"os"
 	"testing"
 
@@ -13,8 +14,10 @@ import (
 var testDB *repository.Database
 
 func TestMain(m *testing.M) {
-	log.Println("[TestMain services] Starting test setup")
+	cfg := config.Load()
 	
+	log.Println("[TestMain services] Starting test setup")
+
 	err := godotenv.Load("../../../.env.test")
 	if err != nil {
 		log.Printf("[TestMain services] Warning: .env.test not loaded: %v", err)
@@ -23,7 +26,7 @@ func TestMain(m *testing.M) {
 	}
 
 	log.Println("[TestMain services] Attempting to connect to test database...")
-	db, err := repository.New()
+	db, err := repository.New(cfg)
 	if err != nil {
 		log.Printf("[TestMain services] Failed to connect to database: %v", err)
 		testDB = nil
@@ -40,4 +43,3 @@ func TestMain(m *testing.M) {
 	}
 	os.Exit(code)
 }
-
