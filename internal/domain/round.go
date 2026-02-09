@@ -33,8 +33,8 @@ type Round struct {
 	PlayerDamage       uint        `db:"player_damage"`
 	BotDamage          uint        `db:"bot_damage"`
 	Status             RoundStatus `db:"status"`
-	PlayerHp           uint        `db:"player_hp"`
-	BotHp              uint        `db:"bot_hp"`
+	PlayerHp           int         `db:"player_hp"`
+	BotHp              int         `db:"bot_hp"`
 	PlayerAttackPoint  *BodyPart   `db:"player_attack_point"`
 	PlayerDefensePoint *BodyPart   `db:"player_defense_point"`
 	BotAttackPoint     *BodyPart   `db:"bot_attack_point"`

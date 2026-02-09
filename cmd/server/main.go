@@ -92,7 +92,7 @@ func main() {
 		}
 	}()
 
-	hpWorker := worker.NewHpWorker(db.DB(), 3*time.Second)
+	hpWorker := worker.NewHpWorker(db.DB(), rdb, 3*time.Second)
 	go hpWorker.StartWorker(ctx)
 
 	<-ctx.Done()

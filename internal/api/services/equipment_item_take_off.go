@@ -121,7 +121,7 @@ func (s *EquipmentItemTakeOffService) TakeOffEquipmentItem(ctx context.Context, 
 			attack = attack - $2,
 			defense = defense - $3,
 			hp = hp - $4,
-			current_hp = current_hp - $4
+			current_hp = LEAST(current_hp, hp - $4)
 		WHERE id = $1 AND deleted_at IS NULL
 	`, fieldName)
 	_, err = tx.Exec(clearSlotQuery, userID, item.Attack, item.Defense, item.Hp)

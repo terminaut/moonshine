@@ -10,11 +10,11 @@ export default function WaywardPines() {
   const navigate = useNavigate()
   const [bots, setBots] = useState([])
   const [loading, setLoading] = useState(true)
+  const currentSlug = user?.locationSlug || user?.location?.slug || ''
+  const currentCellSlug = currentSlug.endsWith('cell') ? currentSlug : '29cell'
 
   useEffect(() => {
-    const currentLocationSlug = user?.locationSlug || 'wayward_pines'
-    
-    botAPI.getBots(currentLocationSlug)
+    botAPI.getBots(currentCellSlug)
       .then((data) => {
         setBots(data)
         setLoading(false)
@@ -23,7 +23,7 @@ export default function WaywardPines() {
         console.error('[WaywardPines] Error loading bots:', err)
         setLoading(false)
       })
-  }, [user?.locationSlug])
+  }, [currentCellSlug])
 
   const handleAttack = async (botSlug) => {
     if (!botSlug) {

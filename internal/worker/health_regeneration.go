@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	goredis "github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/services"
 	"moonshine/internal/api/ws"
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
@@ -16,10 +18,11 @@ type HpWorker struct {
 	healthRegenerationService *services.HealthRegenerationService
 	userRepo                  *repository.UserRepository
 	hub                       *ws.Hub
+	rdb                       *goredis.Client
 	ticker                    *time.Ticker
 }
 
-func NewHpWorker(db *sqlx.DB, interval time.Duration) *HpWorker {
+func NewHpWorker(db *sqlx.DB, rdb *goredis.Client, interval time.Duration) *HpWorker {
 	userRepo := repository.NewUserRepository(db)
 	healthRegenerationService := services.NewHealthRegenerationService(userRepo)
 
@@ -27,6 +30,7 @@ func NewHpWorker(db *sqlx.DB, interval time.Duration) *HpWorker {
 		healthRegenerationService: healthRegenerationService,
 		userRepo:                  userRepo,
 		hub:                       ws.GetHub(),
+		rdb:                       rdb,
 		ticker:                    time.NewTicker(interval),
 	}
 }
@@ -51,9 +55,15 @@ func (w *HpWorker) regenerateHp() {
 		return
 	}
 
+	// Invalidate Redis cache for regenerated users
+	userCache := r.UserCache(w.rdb)
+	for _, update := range regeneratedCount {
+		_ = userCache.Delete(context.Background(), update.UserID.String())
+	}
+
 	connectedUserIDs := w.hub.GetConnectedUserIDs()
-	fmt.Printf("[HpWorker] Regenerated %d users, %d connected\n", regeneratedCount, len(connectedUserIDs))
-	
+	fmt.Printf("[HpWorker] Regenerated %d users, %d connected\n", len(regeneratedCount), len(connectedUserIDs))
+
 	if len(connectedUserIDs) == 0 {
 		return
 	}

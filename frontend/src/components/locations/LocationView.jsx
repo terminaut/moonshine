@@ -2,7 +2,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { locationAPI } from '../../lib/api'
 import PlayerHeader from '../PlayerHeader'
-import LocationBots from './LocationBots'
 import './LocationView.css'
 
 export default function LocationView({ slug, children }) {
@@ -11,7 +10,6 @@ export default function LocationView({ slug, children }) {
 
   const handleLogout = () => {
     logout()
-    // Очистка всего localStorage (кэша)
     localStorage.clear()
     navigate('/signin')
   }
@@ -72,7 +70,6 @@ export default function LocationView({ slug, children }) {
           <PlayerHeader />
           <div className="location-nav-links">
             {links.map((link) => {
-              // Extract slug from path: '/locations/weapon_shop' -> 'weapon_shop'
               const targetSlug = link.to.split('/').pop()
               return (
                 <a
@@ -109,7 +106,6 @@ export default function LocationView({ slug, children }) {
           {children}
         </div>
       </div>
-      <LocationBots />
     </div>
   )
 }

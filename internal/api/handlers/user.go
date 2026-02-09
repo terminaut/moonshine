@@ -11,12 +11,15 @@ import (
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
+	"moonshine/internal/domain"
+	cache "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
 type UserHandler struct {
 	db               *sqlx.DB
 	rdb              *redis.Client
+	userCache        cache.Cache[domain.User]
 	userService      *services.UserService
 	inventoryService *services.InventoryService
 	userRepo         *repository.UserRepository
@@ -34,6 +37,7 @@ func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
 	return &UserHandler{
 		db:               db,
 		rdb:              rdb,
+		userCache:        cache.UserCache(rdb),
 		userService:      userService,
 		inventoryService: inventoryService,
 		userRepo:         userRepo,
@@ -57,7 +61,7 @@ func (h *UserHandler) GetCurrentUser(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.rdb)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.userCache)
 	if err != nil {
 		if err == repository.ErrUserNotFound {
 			return ErrNotFound(c, "user not found")
@@ -212,7 +216,7 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.rdb)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.userCache)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}

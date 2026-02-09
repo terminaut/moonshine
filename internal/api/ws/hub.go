@@ -16,7 +16,7 @@ type Message struct {
 }
 
 type HPUpdateData struct {
-	CurrentHp uint `json:"currentHp"`
+	CurrentHp int  `json:"currentHp"`
 	Hp        uint `json:"hp"`
 }
 
@@ -77,7 +77,12 @@ func (h *Hub) SendToUser(userID uuid.UUID, msg Message) error {
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func (h *Hub) SendHPUpdate(userID uuid.UUID, currentHp, hp uint) error {
+func (h *Hub) SendHPUpdate(userID uuid.UUID, currentHp int, hp uint) error {
+	// Ensure currentHp is not negative before sending
+	if currentHp < 0 {
+		currentHp = 0
+	}
+
 	msg := Message{
 		Type: "hp_update",
 		Data: HPUpdateData{

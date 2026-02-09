@@ -36,6 +36,30 @@ func (s *BotService) GetBotsByLocationSlug(locationSlug string) ([]*domain.Bot, 
 		return nil, errors.New("location slug is required")
 	}
 
+	if locationSlug == domain.WaywardPinesSlug {
+		cells, err := s.locationRepo.FindAllCells()
+		if err != nil {
+			return nil, err
+		}
+
+		botsMap := make(map[uuid.UUID]*domain.Bot)
+		for _, cell := range cells {
+			bots, err := s.botRepo.FindBotsByLocationID(cell.ID)
+			if err != nil {
+				continue
+			}
+			for _, bot := range bots {
+				botsMap[bot.ID] = bot
+			}
+		}
+
+		result := make([]*domain.Bot, 0, len(botsMap))
+		for _, bot := range botsMap {
+			result = append(result, bot)
+		}
+		return result, nil
+	}
+
 	location, err := s.locationRepo.FindBySlug(locationSlug)
 	if err != nil {
 		return nil, err
@@ -66,7 +90,7 @@ func (s *BotService) Attack(ctx context.Context, botSlug string, userID uuid.UUI
 
 	inFight, err := s.userRepo.InFight(userID)
 	if err != nil || inFight {
-		return nil, err
+		return nil, errors.New("user is already in fight")
 	}
 
 	bot, err := s.botRepo.FindBySlug(botSlug)
@@ -74,7 +98,11 @@ func (s *BotService) Attack(ctx context.Context, botSlug string, userID uuid.UUI
 		return nil, err
 	}
 
-	if exists, err := s.locationRepo.HasBot(user.LocationID, bot.ID); err != nil || !exists {
+	exists, err := s.locationRepo.HasBot(user.LocationID, bot.ID)
+	if err != nil {
+		return nil, errors.New("error checking bot location")
+	}
+	if !exists {
 		return nil, errors.New("bot is not in the same location as user")
 	}
 

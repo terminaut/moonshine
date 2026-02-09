@@ -11,7 +11,7 @@ type User struct {
 	UpdatedAt             time.Time  `db:"updated_at"`
 	Attack                uint       `db:"attack"`
 	AvatarID              *uuid.UUID `db:"avatar_id"`
-	CurrentHp             uint       `db:"current_hp"`
+	CurrentHp             int        `db:"current_hp"`
 	Defense               uint       `db:"defense"`
 	Email                 string     `db:"email"`
 	Exp                   uint       `db:"exp"`
@@ -72,22 +72,28 @@ func (user *User) ReachedNewLevel() bool {
 	return user.Exp >= requiredExp
 }
 
-func (user *User) RegenerateHealth(percent float64) uint {
-	if user.CurrentHp >= user.Hp {
-		return user.Hp
+func (user *User) RegenerateHealth(percent float64) int {
+	// Ensure current HP is at least 0
+	if user.CurrentHp < 0 {
+		user.CurrentHp = 0
 	}
 
-	regeneration := uint(float64(user.Hp) * percent / 100.0)
+	maxHp := int(user.Hp)
+	if user.CurrentHp >= maxHp {
+		return maxHp
+	}
 
-	minRegeneration := uint(5)
+	regeneration := int(float64(user.Hp) * percent / 100.0)
+
+	minRegeneration := 5
 	if regeneration < minRegeneration {
 		regeneration = minRegeneration
 	}
 
 	newHp := user.CurrentHp + regeneration
 
-	if newHp > user.Hp {
-		return user.Hp
+	if newHp > maxHp {
+		return maxHp
 	}
 
 	return newHp

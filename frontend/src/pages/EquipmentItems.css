@@ -12,7 +12,6 @@
   position: relative;
 }
 
-/* Notification toast */
 .notification-toast {
   position: fixed;
   top: 20px;
@@ -256,4 +255,3 @@
     inset 0 1px 0 rgba(0, 0, 0, 0.2),
     inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 }
-

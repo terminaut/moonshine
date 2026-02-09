@@ -6,13 +6,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	goredis "github.com/redis/go-redis/v9"
 
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
 type CellsMovingWorker struct {
 	locationRepo *repository.LocationRepository
 	userRepo     *repository.UserRepository
+	rdb          *goredis.Client
 	interval     time.Duration
 	mu           sync.Mutex
 	activeUsers  map[uuid.UUID]context.CancelFunc
@@ -21,11 +24,13 @@ type CellsMovingWorker struct {
 func NewCellsMovingWorker(
 	locationRepo *repository.LocationRepository,
 	userRepo *repository.UserRepository,
+	rdb *goredis.Client,
 	interval time.Duration,
 ) *CellsMovingWorker {
 	return &CellsMovingWorker{
 		locationRepo: locationRepo,
 		userRepo:     userRepo,
+		rdb:          rdb,
 		interval:     interval,
 		activeUsers:  make(map[uuid.UUID]context.CancelFunc),
 	}
@@ -65,6 +70,9 @@ func (w *CellsMovingWorker) StartMovement(userID uuid.UUID, cellSlugs []string) 
 				if err != nil {
 					return
 				}
+				
+				userCache := r.UserCache(w.rdb)
+				_ = userCache.Delete(context.Background(), userID.String())
 			}
 		}
 	}()

@@ -14,7 +14,12 @@ func NewRoundRepository(db ExtHandle) *RoundRepository {
 	return &RoundRepository{db: db}
 }
 
-func (r *RoundRepository) Create(fightID uuid.UUID, userHp, botHp uint) error {
+func (r *RoundRepository) Create(fightID uuid.UUID, userHp int, botHp uint) error {
+	// Ensure HP values are not negative
+	if userHp < 0 {
+		userHp = 0
+	}
+
 	query := `
 		INSERT INTO rounds (fight_id, player_hp, bot_hp, player_damage, bot_damage, status)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -44,9 +49,17 @@ func (r *RoundRepository) FindByFightID(fightID uuid.UUID) ([]*domain.Round, err
 }
 
 func (r *RoundRepository) FinishRound(id uuid.UUID, botAttackPoint, botDefensePoint, playerAttackPoint, playerDefensePoint string,
-	playerDmg, botDmg, finalPlayerHp, finalBotHp uint) error {
+	playerDmg, botDmg uint, finalPlayerHp, finalBotHp int) error {
+	// Ensure HP values are not negative
+	if finalPlayerHp < 0 {
+		finalPlayerHp = 0
+	}
+	if finalBotHp < 0 {
+		finalBotHp = 0
+	}
+
 	query := `
-		UPDATE rounds 
+		UPDATE rounds
 		SET bot_attack_point = $1,
 		    bot_defense_point = $2,
 		    player_attack_point = $3,

@@ -1,19 +1,23 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
 type EquipmentItemHandler struct {
 	db                          *sqlx.DB
+	rdb                         *redis.Client
 	equipmentItemService        *services.EquipmentItemService
 	equipmentItemBuyService     *services.EquipmentItemBuyService
 	equipmentItemSellService    *services.EquipmentItemSellService
@@ -22,7 +26,7 @@ type EquipmentItemHandler struct {
 	userRepo                    *repository.UserRepository
 }
 
-func NewEquipmentItemHandler(db *sqlx.DB) *EquipmentItemHandler {
+func NewEquipmentItemHandler(db *sqlx.DB, rdb ...*redis.Client) *EquipmentItemHandler {
 	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
 	equipmentItemService := services.NewEquipmentItemService(equipmentItemRepo)
 
@@ -33,7 +37,13 @@ func NewEquipmentItemHandler(db *sqlx.DB) *EquipmentItemHandler {
 	equipmentItemTakeOnService := services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo)
 	equipmentItemTakeOffService := services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo)
 
+	var redisClient *redis.Client
+	if len(rdb) > 0 {
+		redisClient = rdb[0]
+	}
+
 	return &EquipmentItemHandler{
+		rdb:                         redisClient,
 		db:                          db,
 		equipmentItemService:        equipmentItemService,
 		equipmentItemBuyService:     equipmentItemBuyService,
@@ -42,6 +52,13 @@ func NewEquipmentItemHandler(db *sqlx.DB) *EquipmentItemHandler {
 		equipmentItemTakeOffService: equipmentItemTakeOffService,
 		userRepo:                    userRepo,
 	}
+}
+
+func (h *EquipmentItemHandler) invalidateUserCache(ctx context.Context, userID string) {
+	if h.rdb == nil {
+		return
+	}
+	_ = r.UserCache(h.rdb).Delete(ctx, userID)
 }
 
 // GetEquipmentItems godoc
@@ -123,6 +140,7 @@ func (h *EquipmentItemHandler) BuyEquipmentItem(c echo.Context) error {
 		}
 	}
 
+	h.invalidateUserCache(c.Request().Context(), userID.String())
 	return SuccessResponse(c, "item purchased successfully")
 }
 
@@ -181,6 +199,7 @@ func (h *EquipmentItemHandler) TakeOnEquipmentItem(c echo.Context) error {
 		}
 	}
 
+	h.invalidateUserCache(c.Request().Context(), userID.String())
 	return SuccessResponse(c, "item equipped successfully")
 }
 
@@ -229,6 +248,7 @@ func (h *EquipmentItemHandler) TakeOffEquipmentItem(c echo.Context) error {
 		}
 	}
 
+	h.invalidateUserCache(c.Request().Context(), userID.String())
 	return SuccessResponse(c, "item removed successfully")
 }
 
@@ -277,5 +297,6 @@ func (h *EquipmentItemHandler) SellEquipmentItem(c echo.Context) error {
 		}
 	}
 
+	h.invalidateUserCache(c.Request().Context(), userID.String())
 	return SuccessResponse(c, "item sold successfully")
 }

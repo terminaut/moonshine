@@ -145,7 +145,7 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 		lvl := calculateLvl(user.Level, user.Exp, fight.Exp)
 
 		if lvl > user.Level {
-			user.CurrentHp = user.Hp
+			user.CurrentHp = int(user.Hp)
 		} else {
 			user.CurrentHp = finalPlayerHp
 		}
@@ -160,7 +160,7 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 		}
 		fight = finished
 	} else {
-		if err = roundRepoTx.Create(fight.ID, finalPlayerHp, finalBotHp); err != nil {
+		if err = roundRepoTx.Create(fight.ID, finalPlayerHp, uint(finalBotHp)); err != nil {
 			return nil, ErrInternalError
 		}
 	}
@@ -200,15 +200,13 @@ func calculateDamage(attack, defense uint, attackPoint, defensePoint string) uin
 	return uint(dmg)
 }
 
-func calculateFinalHp(currentHp, damage uint) uint {
-	var res int
-	res = int(currentHp) - int(damage)
+func calculateFinalHp(currentHp int, damage uint) int {
+	res := currentHp - int(damage)
 
-	if res <= 0 {
+	if res < 0 {
 		return 0
-	} else {
-		return uint(res)
 	}
+	return res
 }
 
 func calculateDroppedGold(botLvl uint) uint {
@@ -221,7 +219,7 @@ func calculateDroppedGold(botLvl uint) uint {
 	return 0
 }
 
-func calculateExp(botFinalHp, playerLvl, botLvl uint) uint {
+func calculateExp(botFinalHp int, playerLvl, botLvl uint) uint {
 	if botFinalHp > 0 || playerLvl >= 20 {
 		return 0
 	}

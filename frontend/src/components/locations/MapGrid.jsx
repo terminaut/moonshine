@@ -99,6 +99,10 @@ export default function MapGrid({ locationSlug }) {
 
   const gridSize = 8
   const totalCells = gridSize * gridSize
+  const currentSlug = user?.locationSlug || user?.location?.slug || ''
+  const playerCellSlug = locationSlug === 'wayward_pines'
+    ? (currentSlug.endsWith('cell') ? currentSlug : '29cell')
+    : currentSlug
   const cellMap = new Map()
   cells.forEach((cell) => {
     if (!cell || !cell.slug) {
@@ -122,7 +126,7 @@ export default function MapGrid({ locationSlug }) {
         {Array.from({ length: totalCells }, (_, index) => {
           const cellNum = index + 1
           const cell = cellMap.get(cellNum)
-          const isPlayerHere = user?.locationSlug === cell?.slug
+          const isPlayerHere = playerCellSlug === cell?.slug
 
           if (!cell) {
             return (
@@ -160,4 +164,3 @@ export default function MapGrid({ locationSlug }) {
     </div>
   )
 }
-

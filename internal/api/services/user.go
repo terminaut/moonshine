@@ -5,11 +5,10 @@ import (
 	"fmt"
 
 	"moonshine/internal/domain"
-	r "moonshine/internal/redis"
+	cache "moonshine/internal/redis"
 	"moonshine/internal/repository"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 type UserService struct {
@@ -18,7 +17,11 @@ type UserService struct {
 	locationRepo *repository.LocationRepository
 }
 
-func NewUserService(userRepo *repository.UserRepository, avatarRepo *repository.AvatarRepository, locationRepo *repository.LocationRepository) *UserService {
+func NewUserService(
+	userRepo *repository.UserRepository,
+	avatarRepo *repository.AvatarRepository,
+	locationRepo *repository.LocationRepository,
+) *UserService {
 	return &UserService{
 		userRepo:     userRepo,
 		avatarRepo:   avatarRepo,
@@ -35,19 +38,19 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*do
 	return user, nil
 }
 
-func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID, rdb *redis.Client) (*domain.User, *domain.Location, bool, error) {
-	user, err := r.GetUser(ctx, rdb, userID.String())
+func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID, userCache cache.Cache[domain.User]) (*domain.User, *domain.Location, bool, error) {
+	user, err := userCache.Get(ctx, userID.String())
 	if err != nil {
 		fmt.Printf("redis get error %s\n", err)
 	}
 
 	if user == nil {
-		user, err := s.userRepo.FindByID(userID)
+		user, err = s.userRepo.FindByID(userID)
 		if err != nil {
 			return nil, nil, false, repository.ErrUserNotFound
 		}
 
-		_ = r.SetUser(ctx, rdb, userID.String(), user)
+		_ = userCache.Set(ctx, userID.String(), user)
 	}
 
 	var location *domain.Location

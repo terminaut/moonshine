@@ -122,7 +122,7 @@ func (r *UserRepository) UpdateAvatarID(userID uuid.UUID, avatarID *uuid.UUID) e
 
 type HPUpdate struct {
 	UserID    uuid.UUID `db:"id"`
-	CurrentHp uint      `db:"current_hp"`
+	CurrentHp int       `db:"current_hp"`
 	Hp        uint      `db:"hp"`
 }
 
@@ -167,15 +167,20 @@ func (r *UserRepository) UpdateLocationID(userID uuid.UUID, locationID uuid.UUID
 	return err
 }
 
-func (r *UserRepository) Update(userID uuid.UUID, addedGold, addedExp, newLevel, newCurrentHp uint) error {
+func (r *UserRepository) Update(userID uuid.UUID, addedGold, addedExp, newLevel uint, newCurrentHp int) error {
 	return r.UpdateWithExt(r.db, userID, addedGold, addedExp, newLevel, newCurrentHp)
 }
 
-func (r *UserRepository) UpdateWithExt(h ExtHandle, userID uuid.UUID, addedGold, addedExp, newLevel, newCurrentHp uint) error {
+func (r *UserRepository) UpdateWithExt(h ExtHandle, userID uuid.UUID, addedGold, addedExp, newLevel uint, newCurrentHp int) error {
+	// Ensure HP doesn't go below 0
+	if newCurrentHp < 0 {
+		newCurrentHp = 0
+	}
+
 	query := `
-		UPDATE users 
-		SET gold = gold + $1, 
-		    exp = exp + $2, 
+		UPDATE users
+		SET gold = gold + $1,
+		    exp = exp + $2,
 		    level = $3,
 		    current_hp = $4
 		WHERE id = $5 AND deleted_at IS NULL

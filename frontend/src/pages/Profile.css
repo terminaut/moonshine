@@ -12,7 +12,6 @@
   position: relative;
 }
 
-/* Notification toast */
 .notification-toast {
   position: fixed;
   top: 20px;
@@ -242,6 +241,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   padding: 0;
+  align-items: stretch;
 }
 
 .profile-inventory-content .equipment-item-card {
@@ -252,17 +252,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 360px;
+  height: 100%;
   box-shadow: 
     0 4px 8px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .profile-inventory-content .equipment-item-image {
-  width: auto;
-  height: auto;
-  max-width: none;
-  max-height: none;
-  object-fit: none;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
   image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
@@ -273,6 +273,9 @@
 .profile-inventory-content .equipment-item-info {
   width: 100%;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .profile-inventory-content .equipment-item-info h3 {
@@ -284,12 +287,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-height: 18px;
 }
 
 .profile-inventory-content .equipment-item-stats {
   font-size: 12px;
   color: #6b5537;
   margin-bottom: 10px;
+  min-height: 88px;
 }
 
 .profile-inventory-content .equipment-item-stats > div {
@@ -333,6 +338,7 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  margin-top: auto;
 }
 
 .profile-inventory-content .equipment-item-sell-button {

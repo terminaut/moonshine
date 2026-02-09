@@ -6,8 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	goredis "github.com/redis/go-redis/v9"
 
 	"moonshine/internal/domain"
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
@@ -21,6 +23,7 @@ type MovingWorker interface {
 
 type LocationService struct {
 	db           *sqlx.DB
+	rdb          *goredis.Client
 	locationRepo *repository.LocationRepository
 	userRepo     *repository.UserRepository
 	movingWorker MovingWorker
@@ -29,6 +32,7 @@ type LocationService struct {
 
 func NewLocationService(
 	db *sqlx.DB,
+	rdb *goredis.Client,
 	locationRepo *repository.LocationRepository,
 	userRepo *repository.UserRepository,
 	movingWorker MovingWorker,
@@ -40,6 +44,7 @@ func NewLocationService(
 
 	return &LocationService{
 		db:           db,
+		rdb:          rdb,
 		locationRepo: locationRepo,
 		userRepo:     userRepo,
 		movingWorker: movingWorker,
@@ -59,13 +64,8 @@ func (s *LocationService) MoveToLocation(ctx context.Context, userID uuid.UUID, 
 		return repository.ErrUserNotFound
 	}
 
-	currentLocation, err := s.locationRepo.FindByID(user.LocationID)
-	if err != nil {
-		return repository.ErrLocationNotFound
-	}
-
 	var targetLocation *domain.Location
-	if targetLocationSlug == domain.WaywardPinesSlug && currentLocation.Slug == domain.MoonshineSlug {
+	if targetLocationSlug == domain.WaywardPinesSlug {
 		defaultOutDoorLocation, err := s.locationRepo.DefaultOutdoorLocation()
 		if err != nil {
 			return repository.ErrLocationNotFound
@@ -91,6 +91,9 @@ func (s *LocationService) MoveToLocation(ctx context.Context, userID uuid.UUID, 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+
+	userCache := r.UserCache(s.rdb)
+	_ = userCache.Delete(ctx, userID.String())
 
 	return nil
 }

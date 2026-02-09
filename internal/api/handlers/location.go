@@ -9,6 +9,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
@@ -43,11 +44,11 @@ type locationCell struct {
 }
 
 
-func NewLocationHandler(db *sqlx.DB) *LocationHandler {
+func NewLocationHandler(db *sqlx.DB, rdb *redis.Client) *LocationHandler {
 	locationRepo := repository.NewLocationRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	movingWorker := worker.NewCellsMovingWorker(locationRepo, userRepo, 5*time.Second)
-	locationService, err := services.NewLocationService(db, locationRepo, userRepo, movingWorker)
+	movingWorker := worker.NewCellsMovingWorker(locationRepo, userRepo, rdb, 5*time.Second)
+	locationService, err := services.NewLocationService(db, rdb, locationRepo, userRepo, movingWorker)
 	if err != nil {
 		log.Fatalf("Failed to create LocationService: %v", err)
 	}

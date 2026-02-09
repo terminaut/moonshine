@@ -17,7 +17,6 @@ export default function EquipmentItems() {
   const [error, setError] = useState(null)
   const [notification, setNotification] = useState(null)
 
-  // Auto-hide notification after 3 seconds
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
@@ -68,12 +67,8 @@ export default function EquipmentItems() {
     }
     try {
       await equipmentAPI.buy(itemSlug)
-      // Refresh user data to update gold
-      const updatedUser = await userAPI.getCurrentUser()
-      // Update auth context if needed
-      // You might need to add a method to update user in AuthContext
+      await userAPI.getCurrentUser()
       showNotification('Предмет успешно куплен!', 'success')
-      // Optionally refresh the items list or user data
     } catch (error) {
       console.error('[EquipmentItems] Error buying item:', error)
       let errorMessage = 'Неизвестная ошибка'
@@ -92,7 +87,6 @@ export default function EquipmentItems() {
     }
   }
 
-  // Normalize image path (same as in Profile.jsx)
   const normalizeImagePath = (img) => {
     if (!img) return null
     let p = img
@@ -130,7 +124,6 @@ export default function EquipmentItems() {
 
   return (
     <div className="equipment-items-container">
-      {/* Notification toast */}
       {notification && (
         <div className={`notification-toast notification-${notification.type}`}>
           {notification.message}
@@ -211,4 +204,3 @@ export default function EquipmentItems() {
     </div>
   )
 }
-

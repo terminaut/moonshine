@@ -110,12 +110,12 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	avatarHandler := handlers.NewAvatarHandler(db)
 	apiGroup.GET("/avatars", avatarHandler.GetAllAvatars)
 
-	locationHandler := handlers.NewLocationHandler(db)
+	locationHandler := handlers.NewLocationHandler(db, rdb)
 	apiGroup.POST("/locations/:slug/move", locationHandler.MoveToLocation)
 	apiGroup.POST("/locations/:slug/cells/:cell_slug/move", locationHandler.MoveToCell)
 	apiGroup.GET("/locations/:slug/cells", locationHandler.GetLocationCells)
 
-	equipmentItemHandler := handlers.NewEquipmentItemHandler(db)
+	equipmentItemHandler := handlers.NewEquipmentItemHandler(db, rdb)
 	apiGroup.GET("/equipment_items", equipmentItemHandler.GetEquipmentItems)
 	apiGroup.POST("/equipment_items/take_off/:slot", equipmentItemHandler.TakeOffEquipmentItem)
 	apiGroup.POST("/equipment_items/:slug/buy", equipmentItemHandler.BuyEquipmentItem)
