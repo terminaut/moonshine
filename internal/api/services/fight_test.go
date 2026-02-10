@@ -46,9 +46,9 @@ func setupFightTestData(db *sqlx.DB) (*domain.Location, *domain.User, *domain.Bo
 
 	botID := uuid.New()
 	bot := &domain.Bot{
-		Model: domain.Model{ID: botID},
-		Name:  "Test Bot",
-		Slug:  fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
+		Model:   domain.Model{ID: botID},
+		Name:    "Test Bot",
+		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
 		Attack:  8,
 		Defense: 4,
 		Hp:      80,

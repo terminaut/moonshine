@@ -24,27 +24,6 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-// @title Moonshine API
-// @version 1.0
-// @description Game API for Moonshine
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /
-// @schemes http https
-
-// @securityDefinitions.apikey Bearer
-// @in header
-// @name Authorization
-// @description JWT token. Example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

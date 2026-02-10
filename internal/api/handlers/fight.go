@@ -50,17 +50,6 @@ type GetCurrentFightResponse struct {
 	Fight dto.Fight `json:"fight"`
 }
 
-// GetCurrentFight godoc
-// @Summary Get current fight
-// @Description Get information about current active fight
-// @Tags fights
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {object} GetCurrentFightResponse
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/fights/current [get]
 func (h *FightHandler) GetCurrentFight(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
@@ -101,19 +90,6 @@ type HitRequest struct {
 	Defense string `json:"defense" validate:"required"`
 }
 
-// Hit godoc
-// @Summary Hit in fight
-// @Description Perform a hit in current fight
-// @Tags fights
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body HitRequest true "Hit request"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/fights/current/hit [post]
 func (h *FightHandler) Hit(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {

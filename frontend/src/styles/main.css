@@ -1,4 +1,4 @@
-/* Main layout styles */
+
 .main-layout {
   min-height: 100vh;
   padding: 20px;
@@ -19,7 +19,7 @@
   margin-bottom: 20px;
 }
 
-/* Utility classes */
+
 .center {
   margin: 0 auto;
   display: table;
@@ -46,7 +46,7 @@ a:hover {
   margin-top: 20px;
 }
 
-/* Stats */
+
 .stats {
   display: flex;
   gap: 20px;
@@ -71,7 +71,7 @@ a:hover {
   height: 32px;
 }
 
-/* Gold */
+
 .gold {
   display: flex;
   align-items: center;
@@ -87,7 +87,7 @@ a:hover {
   flex-shrink: 0;
 }
 
-/* Grid for player equipment */
+
 .grid {
   background: url('/images/players/grid.png') no-repeat;
   background-size: contain;
@@ -96,7 +96,7 @@ a:hover {
   position: relative;
 }
 
-/* Player styles */
+
 .player {
   margin-top: 40px;
 }
@@ -215,7 +215,7 @@ a:hover {
   margin-top: 8px;
 }
 
-/* Inventory */
+
 .inventory .navbar {
   margin: 0px;
 }
@@ -227,7 +227,7 @@ a:hover {
   list-style: none;
 }
 
-/* Log and Framing */
+
 .frame {
   border-top: 2px solid #DADADA;
   margin-top: 50px;
@@ -320,7 +320,7 @@ a:hover {
   margin: 0;
 }
 
-/* Fight */
+
 .fight .characters .character .progress {
   max-width: 316px;
 }
@@ -373,7 +373,7 @@ a:hover {
   margin-right: 20px;
 }
 
-/* Map */
+
 .map {
   max-width: 850px;
 }

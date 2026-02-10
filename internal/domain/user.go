@@ -73,7 +73,6 @@ func (user *User) ReachedNewLevel() bool {
 }
 
 func (user *User) RegenerateHealth(percent float64) int {
-	// Ensure current HP is at least 0
 	if user.CurrentHp < 0 {
 		user.CurrentHp = 0
 	}

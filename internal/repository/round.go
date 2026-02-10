@@ -15,7 +15,6 @@ func NewRoundRepository(db ExtHandle) *RoundRepository {
 }
 
 func (r *RoundRepository) Create(fightID uuid.UUID, userHp int, botHp uint) error {
-	// Ensure HP values are not negative
 	if userHp < 0 {
 		userHp = 0
 	}
@@ -50,7 +49,6 @@ func (r *RoundRepository) FindByFightID(fightID uuid.UUID) ([]*domain.Round, err
 
 func (r *RoundRepository) FinishRound(id uuid.UUID, botAttackPoint, botDefensePoint, playerAttackPoint, playerDefensePoint string,
 	playerDmg, botDmg uint, finalPlayerHp, finalBotHp int) error {
-	// Ensure HP values are not negative
 	if finalPlayerHp < 0 {
 		finalPlayerHp = 0
 	}

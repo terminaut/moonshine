@@ -30,4 +30,3 @@ func getCachedBody(c echo.Context) []byte {
 	}
 	return nil
 }
-

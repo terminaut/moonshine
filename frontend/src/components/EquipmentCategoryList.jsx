@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import './EquipmentCategoryList.css'
 
-// Categories in order from filename prefix (1-weapon, 2-head, etc.)
 const categories = [
   { slug: 'weapon', filename: '1-weapon' },
   { slug: 'head', filename: '2-head' },

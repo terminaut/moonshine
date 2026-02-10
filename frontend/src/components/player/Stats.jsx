@@ -11,7 +11,6 @@ export default function Stats() {
 
   const incrementStat = async (statName) => {
     try {
-      // TODO: Replace with GraphQL mutation when available
       const response = await fetch(`${config.apiUrl}/player/stats/${statName}/increase`, {
         method: 'PATCH',
         headers: {
@@ -27,8 +26,6 @@ export default function Stats() {
       }
       
       const data = await response.json()
-      // TODO: Update user in context with new stat values
-      // For now, just reload user data
     } catch (error) {
       setErrorMessage('Failed to increment stat')
       setShowError(true)

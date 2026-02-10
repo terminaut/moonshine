@@ -31,14 +31,14 @@ func setupBotTestData(db *sqlx.DB) (*domain.Location, *domain.Bot, error) {
 
 	botID := uuid.New()
 	bot := &domain.Bot{
-		Model: domain.Model{ID: botID},
-		Name:  "Test Bot",
-		Slug:  fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
-		Attack: 5,
+		Model:   domain.Model{ID: botID},
+		Name:    "Test Bot",
+		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
+		Attack:  5,
 		Defense: 3,
-		Hp: 20,
-		Level: 1,
-		Avatar: "images/bots/test",
+		Hp:      20,
+		Level:   1,
+		Avatar:  "images/bots/test",
 	}
 	botRepo := repository.NewBotRepository(db)
 	if err := botRepo.Create(bot); err != nil {

@@ -172,7 +172,6 @@ func (r *UserRepository) Update(userID uuid.UUID, addedGold, addedExp, newLevel 
 }
 
 func (r *UserRepository) UpdateWithExt(h ExtHandle, userID uuid.UUID, addedGold, addedExp, newLevel uint, newCurrentHp int) error {
-	// Ensure HP doesn't go below 0
 	if newCurrentHp < 0 {
 		newCurrentHp = 0
 	}
@@ -202,7 +201,7 @@ func (r *UserRepository) GetHPForUsers(userIDs []uuid.UUID) ([]HPUpdate, error) 
 	if len(userIDs) == 0 {
 		return []HPUpdate{}, nil
 	}
-	
+
 	query, args, err := sqlx.In(`
 		SELECT id, current_hp, hp 
 		FROM users 
@@ -211,7 +210,7 @@ func (r *UserRepository) GetHPForUsers(userIDs []uuid.UUID) ([]HPUpdate, error) 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	query = r.db.Rebind(query)
 	var updates []HPUpdate
 	err = r.db.Select(&updates, query, args...)

@@ -41,4 +41,3 @@ func (s *EquipmentItemService) GetByCategorySlug(ctx context.Context, slug strin
 	}
 	return s.equipmentItemRepo.FindByCategorySlugAndArtifact(slug, artifact)
 }
-

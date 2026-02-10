@@ -17,3 +17,5 @@ build-errors.log
 frontend/assets/images/
 internal/graphql/schema.resolvers.go
 agents.mdtmp/
+
+CLAUDE.md

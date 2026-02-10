@@ -28,16 +28,6 @@ func NewAvatarHandler(db *sqlx.DB) *AvatarHandler {
 	}
 }
 
-// GetAllAvatars godoc
-// @Summary Get all avatars
-// @Description Get list of all available avatars
-// @Tags avatars
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {array} dto.Avatar
-// @Failure 401 {object} map[string]string
-// @Router /api/avatars [get]
 func (h *AvatarHandler) GetAllAvatars(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
@@ -55,10 +45,3 @@ func (h *AvatarHandler) GetAllAvatars(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, dto.AvatarsFromDomain(avatars))
 }
-
-
-
-
-
-
-

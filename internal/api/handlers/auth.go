@@ -14,9 +14,9 @@ import (
 )
 
 type AuthHandler struct {
-	authService   *services.AuthService
-	locationRepo  *repository.LocationRepository
-	userRepo      *repository.UserRepository
+	authService  *services.AuthService
+	locationRepo *repository.LocationRepository
+	userRepo     *repository.UserRepository
 }
 
 func NewAuthHandler(db *sqlx.DB) *AuthHandler {
@@ -48,17 +48,6 @@ type AuthResponse struct {
 	User  *dto.User `json:"user"`
 }
 
-// SignUp godoc
-// @Summary Register a new user
-// @Description Create a new user account
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body SignUpRequest true "Sign up request"
-// @Success 200 {object} AuthResponse
-// @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Router /api/auth/signup [post]
 func (h *AuthHandler) SignUp(c echo.Context) error {
 	var req SignUpRequest
 	if err := c.Bind(&req); err != nil {
@@ -99,17 +88,6 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 	})
 }
 
-// SignIn godoc
-// @Summary Sign in
-// @Description Authenticate user and get JWT token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body SignInRequest true "Sign in request" example({"username":"admin","password":"password"})
-// @Success 200 {object} AuthResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /api/auth/signin [post]
 func (h *AuthHandler) SignIn(c echo.Context) error {
 	var req SignInRequest
 	if err := c.Bind(&req); err != nil {

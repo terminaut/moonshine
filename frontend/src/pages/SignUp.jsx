@@ -35,7 +35,6 @@ export default function SignUp() {
       const errorMessage = err.message || ''
       const lowerMessage = errorMessage.toLowerCase()
       
-      // Handle validation errors - show specific messages
       if (lowerMessage === 'user already exists') {
         setError('Пользователь с таким именем или email уже существует. Попробуйте другой.')
       } else if (lowerMessage === 'invalid input') {
@@ -43,7 +42,6 @@ export default function SignUp() {
       } else if (lowerMessage === 'invalid credentials') {
         setError('Неверные данные. Проверьте введенные данные.')
       } else {
-        // All other errors (including internal server errors) - show generic message
         setError('Что-то пошло не так. Попробуйте позже.')
       }
     } finally {

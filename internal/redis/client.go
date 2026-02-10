@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"moonshine/internal/config"
-	"moonshine/internal/domain"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -56,7 +55,7 @@ func (c *JSONCache[T]) Get(ctx context.Context, key string) (*T, error) {
 
 	var result T
 	if err := json.Unmarshal([]byte(value), &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cache value: %w", err)
+		return nil, fmt.Errorf("unmarshal cache value: %w", err)
 	}
 
 	return &result, nil
@@ -65,14 +64,10 @@ func (c *JSONCache[T]) Get(ctx context.Context, key string) (*T, error) {
 func (c *JSONCache[T]) Set(ctx context.Context, key string, value *T) error {
 	data, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("failed to marshal cache value: %w", err)
+		return fmt.Errorf("marshal cache value: %w", err)
 	}
 
-	if err := c.client.Set(ctx, c.formatKey(key), data, c.ttl).Err(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.client.Set(ctx, c.formatKey(key), data, c.ttl).Err()
 }
 
 func (c *JSONCache[T]) Delete(ctx context.Context, key string) error {
@@ -80,12 +75,5 @@ func (c *JSONCache[T]) Delete(ctx context.Context, key string) error {
 }
 
 func (c *JSONCache[T]) formatKey(key string) string {
-	if c.prefix == "" {
-		return key
-	}
 	return c.prefix + ":" + key
-}
-
-func UserCache(client *redis.Client) Cache[domain.User] {
-	return NewJSONCache[domain.User](client, "user", 5*time.Second)
 }

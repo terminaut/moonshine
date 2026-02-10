@@ -60,9 +60,9 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 func setupFightWithBot(t *testing.T, db *sqlx.DB, user *domain.User) (*domain.Bot, *domain.Fight, error) {
 	botID := uuid.New()
 	bot := &domain.Bot{
-		Model: domain.Model{ID: botID},
-		Name:  "Test Bot",
-		Slug:  fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
+		Model:   domain.Model{ID: botID},
+		Name:    "Test Bot",
+		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
 		Attack:  8,
 		Defense: 4,
 		Hp:      80,

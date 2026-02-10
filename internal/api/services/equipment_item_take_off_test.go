@@ -40,13 +40,13 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 	}
 
 	item := &domain.EquipmentItem{
-		Name:              "Test Sword",
-		Slug:              "test-sword",
-		Attack:            10,
-		Defense:           5,
-		Hp:                20,
-		RequiredLevel:     1,
-		Price:             100,
+		Name:                "Test Sword",
+		Slug:                "test-sword",
+		Attack:              10,
+		Defense:             5,
+		Hp:                  20,
+		RequiredLevel:       1,
+		Price:               100,
 		EquipmentCategoryID: category.ID,
 	}
 	itemRepo := repository.NewEquipmentItemRepository(db)
@@ -61,15 +61,15 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 	ts := time.Now().UnixNano()
 	username := fmt.Sprintf("testuser%d", ts)
 	user := &domain.User{
-		Username:             username,
-		Email:                fmt.Sprintf("test%d@example.com", ts),
-		Password:             "password",
-		LocationID:           location.ID,
-		Attack:               11,
-		Defense:              6,
-		Hp:                   40,
-		CurrentHp:            40,
-		Level:                5,
+		Username:              username,
+		Email:                 fmt.Sprintf("test%d@example.com", ts),
+		Password:              "password",
+		LocationID:            location.ID,
+		Attack:                11,
+		Defense:               6,
+		Hp:                    40,
+		CurrentHp:             40,
+		Level:                 5,
 		WeaponEquipmentItemID: &item.ID,
 	}
 	err = db.QueryRow(userQuery, user.Username, user.Email, user.Password, user.LocationID,

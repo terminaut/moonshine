@@ -28,7 +28,6 @@ export default function OnlinePlayers({ onSetRecipient }) {
     }
 
     fetchOnlinePlayers()
-    // Refresh every 30 seconds
     const interval = setInterval(fetchOnlinePlayers, 30000)
     
     return () => clearInterval(interval)

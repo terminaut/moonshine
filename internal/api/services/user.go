@@ -3,29 +3,34 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"moonshine/internal/domain"
-	cache "moonshine/internal/redis"
+	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 
 	"github.com/google/uuid"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 type UserService struct {
 	userRepo     *repository.UserRepository
 	avatarRepo   *repository.AvatarRepository
 	locationRepo *repository.LocationRepository
+	userCache    r.Cache[domain.User]
 }
 
 func NewUserService(
 	userRepo *repository.UserRepository,
 	avatarRepo *repository.AvatarRepository,
 	locationRepo *repository.LocationRepository,
+	rdb *goredis.Client,
 ) *UserService {
 	return &UserService{
 		userRepo:     userRepo,
 		avatarRepo:   avatarRepo,
 		locationRepo: locationRepo,
+		userCache:    r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
 	}
 }
 
@@ -38,8 +43,8 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*do
 	return user, nil
 }
 
-func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID, userCache cache.Cache[domain.User]) (*domain.User, *domain.Location, bool, error) {
-	user, err := userCache.Get(ctx, userID.String())
+func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID) (*domain.User, *domain.Location, bool, error) {
+	user, err := s.userCache.Get(ctx, userID.String())
 	if err != nil {
 		fmt.Printf("redis get error %s\n", err)
 	}
@@ -50,7 +55,7 @@ func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uu
 			return nil, nil, false, repository.ErrUserNotFound
 		}
 
-		_ = userCache.Set(ctx, userID.String(), user)
+		_ = s.userCache.Set(ctx, userID.String(), user)
 	}
 
 	var location *domain.Location

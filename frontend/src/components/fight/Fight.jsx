@@ -75,7 +75,6 @@ export default function Fight() {
 
       const data = await response.json()
       setDataFromResponse(data)
-      // TODO: Update gold if dropped
     } catch (error) {
       console.error('Error attacking:', error)
     }

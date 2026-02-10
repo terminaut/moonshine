@@ -22,4 +22,3 @@ func NewInventoryService(inventoryRepo *repository.InventoryRepository) *Invento
 func (s *InventoryService) GetUserInventory(ctx context.Context, userID uuid.UUID) ([]*domain.EquipmentItem, error) {
 	return s.inventoryRepo.FindByUserID(userID)
 }
-

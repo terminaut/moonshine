@@ -34,13 +34,11 @@ export default function SignIn() {
       const errorMessage = err.message || ''
       const lowerMessage = errorMessage.toLowerCase()
       
-      // Handle validation errors - show specific messages
       if (lowerMessage === 'invalid credentials') {
         setError('Неверное имя пользователя или пароль. Попробуйте еще раз.')
       } else if (lowerMessage === 'invalid input') {
         setError('Проверьте введенные данные. Имя пользователя и пароль должны содержать от 3 до 20 символов.')
       } else {
-        // All other errors (including internal server errors) - show generic message
         setError('Что-то пошло не так. Попробуйте позже.')
       }
     } finally {

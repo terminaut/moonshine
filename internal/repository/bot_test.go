@@ -45,13 +45,13 @@ func TestBotRepository_FindBySlug(t *testing.T) {
 	slug := fmt.Sprintf("find-bot-%d", ts)
 
 	bot := &domain.Bot{
-		Name:   fmt.Sprintf("Find Bot %d", ts),
-		Slug:   slug,
-		Attack: 5,
+		Name:    fmt.Sprintf("Find Bot %d", ts),
+		Slug:    slug,
+		Attack:  5,
 		Defense: 3,
-		Hp: 20,
-		Level: 1,
-		Avatar: "images/bots/find",
+		Hp:      20,
+		Level:   1,
+		Avatar:  "images/bots/find",
 	}
 	err := repo.Create(bot)
 	require.NoError(t, err)
@@ -91,25 +91,25 @@ func TestBotRepository_FindBotsByLocationID(t *testing.T) {
 	require.NoError(t, err)
 
 	bot1 := &domain.Bot{
-		Name:   fmt.Sprintf("Bot 1 %d", ts),
-		Slug:   fmt.Sprintf("bot-1-%d", ts),
-		Attack: 5,
+		Name:    fmt.Sprintf("Bot 1 %d", ts),
+		Slug:    fmt.Sprintf("bot-1-%d", ts),
+		Attack:  5,
 		Defense: 3,
-		Hp: 20,
-		Level: 1,
-		Avatar: "images/bots/bot1",
+		Hp:      20,
+		Level:   1,
+		Avatar:  "images/bots/bot1",
 	}
 	err = repo.Create(bot1)
 	require.NoError(t, err)
 
 	bot2 := &domain.Bot{
-		Name:   fmt.Sprintf("Bot 2 %d", ts),
-		Slug:   fmt.Sprintf("bot-2-%d", ts),
-		Attack: 7,
+		Name:    fmt.Sprintf("Bot 2 %d", ts),
+		Slug:    fmt.Sprintf("bot-2-%d", ts),
+		Attack:  7,
 		Defense: 4,
-		Hp: 25,
-		Level: 2,
-		Avatar: "images/bots/bot2",
+		Hp:      25,
+		Level:   2,
+		Avatar:  "images/bots/bot2",
 	}
 	err = repo.Create(bot2)
 	require.NoError(t, err)

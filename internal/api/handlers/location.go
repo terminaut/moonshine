@@ -13,6 +13,7 @@ import (
 
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
+	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 	"moonshine/internal/worker"
 )
@@ -25,24 +26,15 @@ type LocationHandler struct {
 }
 
 type LocationCellsResponse struct {
-	Cells []locationCell `json:"cells"`
+	Cells []domain.LocationCell `json:"cells"`
 }
 
 type MoveToCellResponse struct {
-	Message      string `json:"message"`
-	PathLength   int    `json:"path_length"`
-	TargetCell   string `json:"target_cell"`
-	TimePerCell  int    `json:"time_per_cell"`
+	Message     string `json:"message"`
+	PathLength  int    `json:"path_length"`
+	TargetCell  string `json:"target_cell"`
+	TimePerCell int    `json:"time_per_cell"`
 }
-
-type locationCell struct {
-	ID       string `json:"id"`
-	Slug     string `json:"slug"`
-	Name     string `json:"name"`
-	Image    string `json:"image"`
-	Inactive bool   `json:"inactive"`
-}
-
 
 func NewLocationHandler(db *sqlx.DB, rdb *redis.Client) *LocationHandler {
 	locationRepo := repository.NewLocationRepository(db)
@@ -61,19 +53,6 @@ func NewLocationHandler(db *sqlx.DB, rdb *redis.Client) *LocationHandler {
 	}
 }
 
-// MoveToLocation godoc
-// @Summary Move to location
-// @Description Move user to a different location
-// @Tags locations
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param slug path string true "Location slug"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/locations/{slug}/move [post]
 func (h *LocationHandler) MoveToLocation(c echo.Context) error {
 	locationSlug := c.Param("slug")
 	if locationSlug == "" {
@@ -106,20 +85,6 @@ func (h *LocationHandler) MoveToLocation(c echo.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
-// MoveToCell godoc
-// @Summary Move to cell
-// @Description Start movement to a cell within location
-// @Tags locations
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param slug path string true "Location slug"
-// @Param cell_slug path string true "Cell slug"
-// @Success 200 {object} MoveToCellResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/locations/{slug}/cells/{cell_slug}/move [post]
 func (h *LocationHandler) MoveToCell(c echo.Context) error {
 	cellSlug := c.Param("cell_slug")
 	if cellSlug == "" {
@@ -181,19 +146,6 @@ func (h *LocationHandler) MoveToCell(c echo.Context) error {
 	})
 }
 
-// GetLocationCells godoc
-// @Summary Get location cells
-// @Description Get list of cells in a location
-// @Tags locations
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param slug path string true "Location slug"
-// @Success 200 {object} LocationCellsResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/locations/{slug}/cells [get]
 func (h *LocationHandler) GetLocationCells(c echo.Context) error {
 	locationSlug := c.Param("slug")
 	if locationSlug == "" {
@@ -218,23 +170,12 @@ func (h *LocationHandler) GetLocationCells(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
-	cells, err := locationRepo.FindCellsByLocationID(location.ID)
+	cells, err := h.locationService.FetchCells(c.Request().Context(), location.ID)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}
 
-	cellsList := make([]locationCell, len(cells))
-	for i, cell := range cells {
-		cellsList[i] = locationCell{
-			ID:       cell.ID.String(),
-			Slug:     cell.Slug,
-			Name:     cell.Name,
-			Image:    cell.Image,
-			Inactive: cell.Inactive,
-		}
-	}
-
 	return c.JSON(http.StatusOK, &LocationCellsResponse{
-		Cells: cellsList,
+		Cells: cells,
 	})
 }

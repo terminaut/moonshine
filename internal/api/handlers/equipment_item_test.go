@@ -51,9 +51,9 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 	require.NoError(t, err)
 
 	item := &domain.EquipmentItem{
-		Name:                "Test Sword",
-		Slug:                fmt.Sprintf("sword-%d", time.Now().UnixNano()),
-		Attack:              5, Defense: 2, Hp: 10, RequiredLevel: 1, Price: 100,
+		Name:   "Test Sword",
+		Slug:   fmt.Sprintf("sword-%d", time.Now().UnixNano()),
+		Attack: 5, Defense: 2, Hp: 10, RequiredLevel: 1, Price: 100,
 		EquipmentCategoryID: categoryID,
 	}
 	itemRepo := repository.NewEquipmentItemRepository(db)
@@ -143,9 +143,9 @@ func TestEquipmentItemHandler_BuyEquipmentItem(t *testing.T) {
 
 	t.Run("success buy returns 200", func(t *testing.T) {
 		newItem := &domain.EquipmentItem{
-			Name:                "Cheap",
-			Slug:                fmt.Sprintf("cheap-%d", time.Now().UnixNano()),
-			Attack:              0, Defense: 0, Hp: 0, RequiredLevel: 1, Price: 10,
+			Name:   "Cheap",
+			Slug:   fmt.Sprintf("cheap-%d", time.Now().UnixNano()),
+			Attack: 0, Defense: 0, Hp: 0, RequiredLevel: 1, Price: 10,
 			EquipmentCategoryID: item.EquipmentCategoryID,
 		}
 		itemRepo := repository.NewEquipmentItemRepository(db)

@@ -15,7 +15,7 @@ var testDB *repository.Database
 
 func TestMain(m *testing.M) {
 	cfg := config.Load()
-	
+
 	log.Println("[TestMain services] Starting test setup")
 
 	err := godotenv.Load("../../../.env.test")

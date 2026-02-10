@@ -34,13 +34,3 @@ func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 		return uuid.Nil, errUnauthorized
 	}
 }
-
-
-
-
-
-
-
-
-
-

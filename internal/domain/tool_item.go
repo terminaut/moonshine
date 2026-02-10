@@ -7,7 +7,7 @@ type ToolItem struct {
 	Name           string        `json:"name"`
 	Price          uint          `json:"price"`
 	RequiredSkill  uint          `json:"required_skill"`
-	ToolCategoryID uuid.UUID    `json:"tool_category_id"`
+	ToolCategoryID uuid.UUID     `json:"tool_category_id"`
 	ToolCategory   *ToolCategory `json:"tool_category,omitempty"`
 	Image          string        `json:"image"`
 }

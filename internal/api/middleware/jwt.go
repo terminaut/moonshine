@@ -77,4 +77,3 @@ func ExtractUserIDFromJWT() echo.MiddlewareFunc {
 		}
 	}
 }
-

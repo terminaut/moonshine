@@ -16,13 +16,6 @@ import (
 	"moonshine/internal/config"
 )
 
-// @Summary Health check
-// @Description Check if the server is running
-// @Tags health
-// @Accept json
-// @Produce json
-// @Success 200 {string} string "ok"
-// @Router /health [get]
 func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Config) {
 	e.GET("/health", healthCheck)
 
@@ -131,14 +124,6 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	apiGroup.POST("/fights/current/hit", fightHandler.Hit)
 }
 
-// healthCheck godoc
-// @Summary Health check
-// @Description Check if the server is running
-// @Tags health
-// @Accept json
-// @Produce plain
-// @Success 200 {string} string "ok"
-// @Router /health [get]
 func healthCheck(c echo.Context) error {
 	return c.String(http.StatusOK, "ok")
 }

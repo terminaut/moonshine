@@ -12,4 +12,3 @@ type Model struct {
 	CreatedAt time.Time    `json:"created_at" db:"created_at"`
 	DeletedAt sql.NullTime `json:"deleted_at,omitempty" db:"deleted_at"`
 }
-

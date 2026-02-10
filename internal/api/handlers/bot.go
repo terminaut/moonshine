@@ -31,18 +31,6 @@ func NewBotHandler(db *sqlx.DB) *BotHandler {
 	}
 }
 
-// GetBots godoc
-// @Summary Get bots by location
-// @Description Get list of bots in a specific location
-// @Tags bots
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param location_slug path string true "Location slug"
-// @Success 200 {object} BotResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /api/bots/{location_slug} [get]
 func (h *BotHandler) GetBots(c echo.Context) error {
 	locationSlug := c.Param("location_slug")
 	if locationSlug == "" {
@@ -68,19 +56,6 @@ func (h *BotHandler) GetBots(c echo.Context) error {
 	})
 }
 
-// Attack godoc
-// @Summary Attack a bot
-// @Description Initiate a fight with a bot
-// @Tags bots
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param slug path string true "Bot slug"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/bots/{slug}/attack [post]
 func (h *BotHandler) Attack(c echo.Context) error {
 	botSlug := c.Param("slug")
 	if botSlug == "" {

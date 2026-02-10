@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/lib/pq"
 	"github.com/joho/godotenv"
 	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 
 	"moonshine/internal/config"
@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open database connection: %v", err)
 	}
-	
+
 	if err := db.Ping(); err != nil {
 		if *command == "up" && isDatabaseDoesNotExistError(err) {
 			if err := createDatabase(cfg); err != nil {
@@ -120,7 +120,7 @@ func createDatabase(cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to open database connection: %w", err)
 	}
-	
+
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return fmt.Errorf("failed to connect to postgres database: %w", err)

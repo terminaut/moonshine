@@ -10,6 +10,7 @@ import (
 
 	"moonshine/internal/api/services"
 	"moonshine/internal/api/ws"
+	"moonshine/internal/domain"
 	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
@@ -18,7 +19,7 @@ type HpWorker struct {
 	healthRegenerationService *services.HealthRegenerationService
 	userRepo                  *repository.UserRepository
 	hub                       *ws.Hub
-	rdb                       *goredis.Client
+	userCache                 r.Cache[domain.User]
 	ticker                    *time.Ticker
 }
 
@@ -30,7 +31,7 @@ func NewHpWorker(db *sqlx.DB, rdb *goredis.Client, interval time.Duration) *HpWo
 		healthRegenerationService: healthRegenerationService,
 		userRepo:                  userRepo,
 		hub:                       ws.GetHub(),
-		rdb:                       rdb,
+		userCache:                 r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
 		ticker:                    time.NewTicker(interval),
 	}
 }
@@ -55,10 +56,8 @@ func (w *HpWorker) regenerateHp() {
 		return
 	}
 
-	// Invalidate Redis cache for regenerated users
-	userCache := r.UserCache(w.rdb)
 	for _, update := range regeneratedCount {
-		_ = userCache.Delete(context.Background(), update.UserID.String())
+		_ = w.userCache.Delete(context.Background(), update.UserID.String())
 	}
 
 	connectedUserIDs := w.hub.GetConnectedUserIDs()

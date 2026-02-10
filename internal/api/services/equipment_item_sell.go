@@ -82,7 +82,3 @@ func (s *EquipmentItemSellService) SellEquipmentItem(ctx context.Context, userID
 
 	return nil
 }
-
-
-
-

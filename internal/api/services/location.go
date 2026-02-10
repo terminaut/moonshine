@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -23,11 +24,12 @@ type MovingWorker interface {
 
 type LocationService struct {
 	db           *sqlx.DB
-	rdb          *goredis.Client
 	locationRepo *repository.LocationRepository
 	userRepo     *repository.UserRepository
 	movingWorker MovingWorker
 	graph        *LocationGraph
+	userCache    r.Cache[domain.User]
+	cellsCache   r.Cache[[]domain.LocationCell]
 }
 
 func NewLocationService(
@@ -44,11 +46,12 @@ func NewLocationService(
 
 	return &LocationService{
 		db:           db,
-		rdb:          rdb,
 		locationRepo: locationRepo,
 		userRepo:     userRepo,
 		movingWorker: movingWorker,
 		graph:        graph,
+		userCache:    r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		cellsCache:   r.NewJSONCache[[]domain.LocationCell](rdb, "location_cells", 10*time.Minute),
 	}, nil
 }
 
@@ -92,8 +95,7 @@ func (s *LocationService) MoveToLocation(ctx context.Context, userID uuid.UUID, 
 		return err
 	}
 
-	userCache := r.UserCache(s.rdb)
-	_ = userCache.Delete(ctx, userID.String())
+	_ = s.userCache.Delete(ctx, userID.String())
 
 	return nil
 }
@@ -104,4 +106,35 @@ func (s *LocationService) FindShortestPath(fromSlug, toSlug string) ([]string, e
 
 func (s *LocationService) StartCellMovement(userID uuid.UUID, cellSlugs []string) error {
 	return s.movingWorker.StartMovement(userID, cellSlugs)
+}
+
+func (s *LocationService) FetchCells(ctx context.Context, locationID uuid.UUID) ([]domain.LocationCell, error) {
+	cacheKey := locationID.String()
+
+	cached, err := s.cellsCache.Get(ctx, cacheKey)
+	if err == nil && cached != nil && *cached != nil && len(*cached) > 0 {
+		return *cached, nil
+	}
+
+	cells, err := s.locationRepo.FindCellsByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+
+	cellsList := make([]domain.LocationCell, len(cells))
+	for i, cell := range cells {
+		cellsList[i] = domain.LocationCell{
+			ID:       cell.ID.String(),
+			Slug:     cell.Slug,
+			Name:     cell.Name,
+			Image:    cell.Image,
+			Inactive: cell.Inactive,
+		}
+	}
+
+	if len(cellsList) > 0 {
+		_ = s.cellsCache.Set(ctx, cacheKey, &cellsList)
+	}
+
+	return cellsList, nil
 }

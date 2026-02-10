@@ -42,10 +42,10 @@ type User struct {
 }
 
 type Location struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Slug  string `json:"slug"`
-	Bots  []*Bot `json:"bots"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+	Bots []*Bot `json:"bots"`
 }
 
 type Avatar struct {

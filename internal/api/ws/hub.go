@@ -78,7 +78,6 @@ func (h *Hub) SendToUser(userID uuid.UUID, msg Message) error {
 }
 
 func (h *Hub) SendHPUpdate(userID uuid.UUID, currentHp int, hp uint) error {
-	// Ensure currentHp is not negative before sending
 	if currentHp < 0 {
 		currentHp = 0
 	}
@@ -109,7 +108,7 @@ func (h *Hub) ConnectionCount() int {
 func (h *Hub) GetConnectedUserIDs() []uuid.UUID {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	userIDs := make([]uuid.UUID, 0, len(h.connections))
 	for userID := range h.connections {
 		userIDs = append(userIDs, userID)

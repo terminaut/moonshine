@@ -40,13 +40,13 @@ func setupTestData(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, uuid.UUID,
 	}
 
 	item := &domain.EquipmentItem{
-		Name:              "Test Sword",
-		Slug:              "test-sword",
-		Attack:            10,
-		Defense:           5,
-		Hp:                20,
-		RequiredLevel:     1,
-		Price:             100,
+		Name:                "Test Sword",
+		Slug:                "test-sword",
+		Attack:              10,
+		Defense:             5,
+		Hp:                  20,
+		RequiredLevel:       1,
+		Price:               100,
 		EquipmentCategoryID: category.ID,
 	}
 	itemRepo := repository.NewEquipmentItemRepository(db)
@@ -128,13 +128,13 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 
 	t.Run("item not in inventory", func(t *testing.T) {
 		newItem := &domain.EquipmentItem{
-			Name:              "New Sword",
-			Slug:              fmt.Sprintf("new-sword-%d", time.Now().UnixNano()),
-			Attack:            10,
-			Defense:           5,
-			Hp:                20,
-			RequiredLevel:     1,
-			Price:             100,
+			Name:                "New Sword",
+			Slug:                fmt.Sprintf("new-sword-%d", time.Now().UnixNano()),
+			Attack:              10,
+			Defense:             5,
+			Hp:                  20,
+			RequiredLevel:       1,
+			Price:               100,
 			EquipmentCategoryID: categoryID,
 		}
 		err := equipmentItemRepo.Create(newItem)
@@ -146,13 +146,13 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 
 	t.Run("insufficient level", func(t *testing.T) {
 		highLevelItem := &domain.EquipmentItem{
-			Name:              "High Level Sword",
-			Slug:              fmt.Sprintf("high-level-sword-%d", time.Now().UnixNano()),
-			Attack:            10,
-			Defense:           5,
-			Hp:                20,
-			RequiredLevel:     10,
-			Price:             100,
+			Name:                "High Level Sword",
+			Slug:                fmt.Sprintf("high-level-sword-%d", time.Now().UnixNano()),
+			Attack:              10,
+			Defense:             5,
+			Hp:                  20,
+			RequiredLevel:       10,
+			Price:               100,
 			EquipmentCategoryID: categoryID,
 		}
 		err := equipmentItemRepo.Create(highLevelItem)
@@ -171,13 +171,13 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 
 	t.Run("replace existing equipment", func(t *testing.T) {
 		newItem2 := &domain.EquipmentItem{
-			Name:              "New Sword 2",
-			Slug:              fmt.Sprintf("new-sword-2-%d", time.Now().UnixNano()),
-			Attack:            15,
-			Defense:           8,
-			Hp:                25,
-			RequiredLevel:     1,
-			Price:             100,
+			Name:                "New Sword 2",
+			Slug:                fmt.Sprintf("new-sword-2-%d", time.Now().UnixNano()),
+			Attack:              15,
+			Defense:             8,
+			Hp:                  25,
+			RequiredLevel:       1,
+			Price:               100,
 			EquipmentCategoryID: categoryID,
 		}
 		err := equipmentItemRepo.Create(newItem2)

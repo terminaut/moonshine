@@ -24,10 +24,3 @@ func (s *AvatarService) GetAllAvatars(ctx context.Context) ([]*domain.Avatar, er
 	}
 	return avatars, nil
 }
-
-
-
-
-
-
-

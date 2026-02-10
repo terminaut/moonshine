@@ -10,7 +10,6 @@ export default function Profile({ player }) {
 
   const takeOffItem = async (item, type) => {
     try {
-      // TODO: Replace with GraphQL mutation when available
       const response = await fetch(`${config.apiUrl}/stuff/items/${item.id}/take_off`, {
         method: 'POST',
         headers: {
@@ -26,7 +25,6 @@ export default function Profile({ player }) {
       }
       
       const data = await response.json()
-      // TODO: Update player data in context
     } catch (error) {
       console.error('Error taking off item:', error)
     }

@@ -35,7 +35,6 @@ export default function Items({ player }) {
       }
       
       const data = await response.json()
-      // TODO: Update player data in context
     } catch (error) {
       console.error('Error putting on item:', error)
     }
@@ -66,7 +65,6 @@ export default function Items({ player }) {
       }
       
       const data = await response.json()
-      // TODO: Update player data in context
     } catch (error) {
       setErrorMessage('Failed to sell item')
       if (type === 'resource') {

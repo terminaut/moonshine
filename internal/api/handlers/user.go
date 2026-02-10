@@ -11,15 +11,11 @@ import (
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
-	"moonshine/internal/domain"
-	cache "moonshine/internal/redis"
 	"moonshine/internal/repository"
 )
 
 type UserHandler struct {
 	db               *sqlx.DB
-	rdb              *redis.Client
-	userCache        cache.Cache[domain.User]
 	userService      *services.UserService
 	inventoryService *services.InventoryService
 	userRepo         *repository.UserRepository
@@ -29,39 +25,26 @@ func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
-	userService := services.NewUserService(userRepo, avatarRepo, locationRepo)
+	userService := services.NewUserService(userRepo, avatarRepo, locationRepo, rdb)
 
 	inventoryRepo := repository.NewInventoryRepository(db)
 	inventoryService := services.NewInventoryService(inventoryRepo)
 
 	return &UserHandler{
 		db:               db,
-		rdb:              rdb,
-		userCache:        cache.UserCache(rdb),
 		userService:      userService,
 		inventoryService: inventoryService,
 		userRepo:         userRepo,
 	}
 }
 
-// GetCurrentUser godoc
-// @Summary Get current user
-// @Description Get authenticated user information
-// @Tags user
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {object} dto.User
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/user/me [get]
 func (h *UserHandler) GetCurrentUser(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
 		return ErrUnauthorized(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.userCache)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)
 	if err != nil {
 		if err == repository.ErrUserNotFound {
 			return ErrNotFound(c, "user not found")
@@ -72,16 +55,6 @@ func (h *UserHandler) GetCurrentUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, dto.UserFromDomain(user, location, nil, inFight))
 }
 
-// GetUserInventory godoc
-// @Summary Get user inventory
-// @Description Get list of items in user's inventory
-// @Tags user
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {array} dto.EquipmentItem
-// @Failure 401 {object} map[string]string
-// @Router /api/users/me/inventory [get]
 func (h *UserHandler) GetUserInventory(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
@@ -96,16 +69,6 @@ func (h *UserHandler) GetUserInventory(c echo.Context) error {
 	return c.JSON(http.StatusOK, dto.EquipmentItemsFromDomain(items))
 }
 
-// GetUserEquippedItems godoc
-// @Summary Get equipped items
-// @Description Get list of currently equipped items
-// @Tags user
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {object} map[string]dto.EquipmentItem
-// @Failure 401 {object} map[string]string
-// @Router /api/users/me/equipped [get]
 func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
@@ -168,19 +131,6 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 	return c.JSON(http.StatusOK, equipmentItems)
 }
 
-// UpdateCurrentUser godoc
-// @Summary Update current user
-// @Description Update authenticated user information
-// @Tags user
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body dto.UpdateUserRequest true "Update user request"
-// @Success 200 {object} dto.User
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /api/user/me [put]
 func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
 	if err != nil {
@@ -216,7 +166,7 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
-	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID, h.userCache)
+	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}
