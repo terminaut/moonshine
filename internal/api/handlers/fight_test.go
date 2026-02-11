@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"context"
-
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/domain"
@@ -104,7 +102,7 @@ func TestFightHandler_GetCurrentFight(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/fights/current", nil)
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -140,7 +138,7 @@ func TestFightHandler_GetCurrentFight(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/fights/current", nil)
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -180,7 +178,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -244,7 +242,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -273,7 +271,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -298,7 +296,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -319,7 +317,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 

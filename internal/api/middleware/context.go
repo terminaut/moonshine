@@ -13,6 +13,12 @@ const userIDKey contextKey = "userID"
 
 var errUnauthorized = errors.New("unauthorized")
 
+// ContextWithUserID returns a new context with the given user ID set.
+// This is intended for use in tests and middleware.
+func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
+	return context.WithValue(ctx, userIDKey, userID)
+}
+
 func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 	v := ctx.Value(userIDKey)
 	if v == nil {

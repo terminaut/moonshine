@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,7 +23,7 @@ func setupLocationHandlerTest(t *testing.T) (*LocationHandler, *sqlx.DB, *domain
 		t.Skip("Test database not initialized")
 	}
 	db := testDB.DB()
-	handler := NewLocationHandler(db)
+	handler := NewLocationHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
@@ -52,7 +51,7 @@ func TestLocationHandler_MoveToLocation(t *testing.T) {
 
 	t.Run("empty slug returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/locations//move", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/move")
@@ -79,7 +78,7 @@ func TestLocationHandler_MoveToLocation(t *testing.T) {
 
 	t.Run("location not found returns 404", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/locations/nonexistent/move", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/move")
@@ -93,7 +92,7 @@ func TestLocationHandler_MoveToLocation(t *testing.T) {
 
 	t.Run("move to same location returns 200", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/locations/"+loc.Slug+"/move", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/move")
@@ -115,7 +114,7 @@ func TestLocationHandler_GetLocationCells(t *testing.T) {
 
 	t.Run("empty slug returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/locations//cells", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/cells")
@@ -142,7 +141,7 @@ func TestLocationHandler_GetLocationCells(t *testing.T) {
 
 	t.Run("location not found returns 404", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/locations/nonexistent/cells", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/cells")
@@ -156,7 +155,7 @@ func TestLocationHandler_GetLocationCells(t *testing.T) {
 
 	t.Run("success returns 200 and cells", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/locations/"+loc.Slug+"/cells", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/cells")
@@ -179,7 +178,7 @@ func TestLocationHandler_MoveToCell(t *testing.T) {
 
 	t.Run("empty cell_slug returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/locations/x/cells//move", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetPath("/api/locations/:slug/cells/:cell_slug/move")

@@ -10,23 +10,27 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"moonshine/internal/api"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
+
+type customValidator struct{ v *validator.Validate }
+
+func (cv *customValidator) Validate(i interface{}) error { return cv.v.Struct(i) }
 
 func setupAuthHandlerTest(t *testing.T) (*AuthHandler, *sqlx.DB, echo.Echo) {
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
 	db := testDB.DB()
-	handler := NewAuthHandler(db)
+	handler := NewAuthHandler(db, "test-secret")
 	e := echo.New()
-	e.Validator = api.NewValidator()
+	e.Validator = &customValidator{v: validator.New()}
 	return handler, db, *e
 }
 

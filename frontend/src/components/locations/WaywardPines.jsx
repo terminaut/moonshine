@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MapGrid from './MapGrid'
 import { botAPI } from '../../lib/api'
+import { preloadImages } from '../../lib/imageCache'
 import { useAuth } from '../../context/AuthContext'
 import './WaywardPines.css'
 
@@ -12,6 +13,10 @@ export default function WaywardPines() {
   const [loading, setLoading] = useState(true)
   const currentSlug = user?.locationSlug || user?.location?.slug || ''
   const currentCellSlug = currentSlug.endsWith('cell') ? currentSlug : '29cell'
+
+  useEffect(() => {
+    preloadImages(['/assets/images/locations/wayward_pines/icon.png'])
+  }, [])
 
   useEffect(() => {
     botAPI.getBots(currentCellSlug)

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { locationAPI } from '../../lib/api'
+import { preloadImages } from '../../lib/imageCache'
 import './MapGrid.css'
+
+const cellsCache = new Map()
 
 export default function MapGrid({ locationSlug }) {
   const { user, refetchUser } = useAuth()
@@ -14,14 +17,26 @@ export default function MapGrid({ locationSlug }) {
 
   useEffect(() => {
     const loadCells = async () => {
-      try {
+      const cachedCells = cellsCache.get(locationSlug)
+      if (cachedCells && cachedCells.length > 0) {
+        setCells(cachedCells)
+        setError(null)
+        setLoading(false)
+      } else {
         setLoading(true)
+      }
+
+      try {
         const data = await locationAPI.getCells(locationSlug)
-        setCells(data.cells || [])
+        const nextCells = data.cells || []
+        setCells(nextCells)
+        cellsCache.set(locationSlug, nextCells)
         setError(null)
       } catch (err) {
         console.error('[MapGrid] Error loading cells:', err)
-        setError(err.message)
+        if (!cachedCells || cachedCells.length === 0) {
+          setError(err.message)
+        }
       } finally {
         setLoading(false)
       }
@@ -31,6 +46,14 @@ export default function MapGrid({ locationSlug }) {
       loadCells()
     }
   }, [locationSlug])
+
+  useEffect(() => {
+    const imageSources = cells
+      .filter((cell) => cell?.image)
+      .map((cell) => `/assets/images/locations/${cell.image}`)
+
+    preloadImages(['/assets/images/warrior.png', ...imageSources])
+  }, [cells])
 
   useEffect(() => {
     if (!locationSlug) return
@@ -147,6 +170,7 @@ export default function MapGrid({ locationSlug }) {
                     src={`/assets/images/locations/${cell.image}`}
                     alt={cell.name}
                     className="map-cell-image"
+                    decoding="async"
                   />
                 )}
               </div>
@@ -155,6 +179,7 @@ export default function MapGrid({ locationSlug }) {
                   src="/assets/images/warrior.png"
                   alt="Персонаж"
                   className="map-cell-player-icon"
+                  decoding="async"
                 />
               )}
             </div>

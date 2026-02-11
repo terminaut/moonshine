@@ -45,6 +45,10 @@ func Ping(ctx context.Context, client *redis.Client) error {
 }
 
 func (c *JSONCache[T]) Get(ctx context.Context, key string) (*T, error) {
+	if c == nil || c.client == nil {
+		return nil, nil
+	}
+
 	value, err := c.client.Get(ctx, c.formatKey(key)).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -62,6 +66,10 @@ func (c *JSONCache[T]) Get(ctx context.Context, key string) (*T, error) {
 }
 
 func (c *JSONCache[T]) Set(ctx context.Context, key string, value *T) error {
+	if c == nil || c.client == nil {
+		return nil
+	}
+
 	data, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("marshal cache value: %w", err)
@@ -71,6 +79,10 @@ func (c *JSONCache[T]) Set(ctx context.Context, key string, value *T) error {
 }
 
 func (c *JSONCache[T]) Delete(ctx context.Context, key string) error {
+	if c == nil || c.client == nil {
+		return nil
+	}
+
 	return c.client.Del(ctx, c.formatKey(key)).Err()
 }
 

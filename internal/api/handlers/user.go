@@ -154,7 +154,7 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 		avatarID = &parsedID
 	}
 
-	user, err := h.userService.UpdateUser(c.Request().Context(), userID, avatarID)
+	_, err = h.userService.UpdateUser(c.Request().Context(), userID, avatarID)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrUserNotFound):

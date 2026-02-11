@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { preloadImages } from '../../lib/imageCache'
 import './WeaponShop.css'
 
 const categories = [
@@ -15,6 +17,13 @@ const categories = [
 ]
 
 export default function ArtifactsShop() {
+  useEffect(() => {
+    preloadImages([
+      '/assets/images/locations/cities/moonshine/shop_of_artifacts/bg.jpg',
+      ...categories.map((category) => `/assets/images/locations/cities/moonshine/weapon_shop/categories/${category.filename}.png`),
+    ])
+  }, [])
+
   return (
     <div className="weapon-shop-container">
       <div className="weapon-shop-bg">
@@ -22,6 +31,7 @@ export default function ArtifactsShop() {
           src="/assets/images/locations/cities/moonshine/shop_of_artifacts/bg.jpg"
           alt="Артефакты"
           className="weapon-shop-bg-image"
+          decoding="async"
         />
       </div>
       <div className="weapon-shop-categories">
@@ -35,6 +45,7 @@ export default function ArtifactsShop() {
               src={`/assets/images/locations/cities/moonshine/weapon_shop/categories/${category.filename}.png`}
               alt={category.slug}
               className="weapon-shop-category-icon"
+              decoding="async"
             />
           </Link>
         ))}

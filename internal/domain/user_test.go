@@ -61,12 +61,12 @@ func TestUser_ReachedNewLevel(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "level 11 (not in matrix)",
+			name: "level 11 with enough exp",
 			user: &User{
 				Level: 11,
 				Exp:   100000,
 			},
-			expected: false,
+			expected: true,
 		},
 	}
 

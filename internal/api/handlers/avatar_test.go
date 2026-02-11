@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +61,7 @@ func TestAvatarHandler_GetAllAvatars(t *testing.T) {
 
 	t.Run("success returns 200 and avatars array", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/avatars", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, user.ID))
+		req = req.WithContext(middleware.ContextWithUserID(req.Context(), user.ID))
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 

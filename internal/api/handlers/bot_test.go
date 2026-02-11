@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"moonshine/internal/config"
@@ -221,7 +220,7 @@ func TestBotHandler_Attack(t *testing.T) {
 		c.SetParamValues("")
 
 		userID := uuid.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
+		ctx := middleware.ContextWithUserID(req.Context(), userID)
 		c.SetRequest(req.WithContext(ctx))
 
 		err := handler.Attack(c)
@@ -260,7 +259,7 @@ func TestBotHandler_Attack(t *testing.T) {
 		c.SetParamValues("non-existent-bot")
 
 		userID := uuid.New()
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
+		ctx := middleware.ContextWithUserID(req.Context(), userID)
 		c.SetRequest(req.WithContext(ctx))
 
 		err := handler.Attack(c)
@@ -281,7 +280,7 @@ func TestBotHandler_Attack(t *testing.T) {
 		c.SetParamNames("slug")
 		c.SetParamValues(bot.Slug)
 
-		ctx := context.WithValue(req.Context(), middleware.UserIDKey, user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		c.SetRequest(req.WithContext(ctx))
 
 		err = handler.Attack(c)

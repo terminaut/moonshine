@@ -1,4 +1,4 @@
-.PHONY: migrate-up migrate-down migrate-status migrate-create migrate-reset graphql dev server debug readme seed seed-avatars convert-avatars test test-db-setup setup swagger
+.PHONY: migrate-up migrate-down migrate-status migrate-create migrate-reset graphql dev server debug readme seed seed-avatars convert-avatars test test-db-setup setup swagger gotestsum-install test-dots go-tests
 
 GO := $(shell which go 2>/dev/null || echo /opt/homebrew/bin/go)
 
@@ -94,6 +94,21 @@ test: test-db-setup
 		print ""; \
 		if (total_fail > 0) exit 1 \
 	}'
+
+gotestsum-install:
+	$(GO) install gotest.tools/gotestsum@latest
+
+test-dots: test-db-setup
+	@if command -v gotestsum > /dev/null; then \
+		gotestsum --format dots -- -count=1 ./...; \
+	elif [ -f ~/go/bin/gotestsum ]; then \
+		~/go/bin/gotestsum --format dots -- -count=1 ./...; \
+	else \
+		echo "gotestsum not found. Install it with: make gotestsum-install"; \
+		exit 1; \
+	fi
+
+go-tests: test-dots
 
 swagger:
 	@if command -v swag > /dev/null; then \

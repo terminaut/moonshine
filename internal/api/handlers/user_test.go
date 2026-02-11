@@ -28,7 +28,7 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 		t.Skip("Test database not initialized")
 	}
 	db := testDB.DB()
-	handler := NewUserHandler(db)
+	handler := NewUserHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
@@ -52,7 +52,7 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 }
 
 func ctxWithUserID(userID uuid.UUID) context.Context {
-	return context.WithValue(context.Background(), middleware.UserIDKey, userID)
+	return middleware.ContextWithUserID(context.Background(), userID)
 }
 
 func TestUserHandler_GetCurrentUser(t *testing.T) {
@@ -175,12 +175,15 @@ func TestUserHandler_UpdateCurrentUser(t *testing.T) {
 	avatars, err := avatarRepo.FindAll()
 	require.NoError(t, err)
 	var avatarID string
+	var avatarImage string
 	if len(avatars) > 0 {
 		avatarID = avatars[0].ID.String()
+		avatarImage = avatars[0].Image
 	} else {
 		a := &domain.Avatar{Image: "img", Private: false}
 		require.NoError(t, avatarRepo.Create(a))
 		avatarID = a.ID.String()
+		avatarImage = a.Image
 	}
 
 	t.Run("unauthorized when no userID", func(t *testing.T) {
@@ -222,5 +225,10 @@ func TestUserHandler_UpdateCurrentUser(t *testing.T) {
 		err := handler.UpdateCurrentUser(c)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var got dto.User
+		err = json.Unmarshal(rec.Body.Bytes(), &got)
+		require.NoError(t, err)
+		assert.Equal(t, avatarImage, got.Avatar)
 	})
 }

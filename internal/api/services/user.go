@@ -69,7 +69,6 @@ func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uu
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, userID uuid.UUID, avatarID *uuid.UUID) (*domain.User, error) {
-
 	if avatarID != nil {
 		_, err := s.avatarRepo.FindByID(*avatarID)
 		if err != nil {
@@ -82,5 +81,14 @@ func (s *UserService) UpdateUser(ctx context.Context, userID uuid.UUID, avatarID
 		return nil, err
 	}
 
-	return s.GetCurrentUser(ctx, userID)
+	_ = s.userCache.Delete(ctx, userID.String())
+
+	user, err := s.GetCurrentUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = s.userCache.Set(ctx, userID.String(), user)
+
+	return user, nil
 }

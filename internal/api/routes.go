@@ -22,18 +22,18 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	wsHandler := handlers.NewWebSocketHandler(cfg)
 	e.GET("/api/ws", wsHandler.HandleConnection)
 
-	if !cfg.IsProduction() {
-		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
-				if strings.HasPrefix(c.Request().URL.Path, "/assets") {
-					c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-					c.Response().Header().Set("Pragma", "no-cache")
-					c.Response().Header().Set("Expires", "0")
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if strings.HasPrefix(c.Request().URL.Path, "/assets") {
+				if cfg.IsProduction() {
+					c.Response().Header().Set("Cache-Control", "public, max-age=604800")
+				} else {
+					c.Response().Header().Set("Cache-Control", "public, max-age=3600")
 				}
-				return next(c)
 			}
-		})
-	}
+			return next(c)
+		}
+	})
 
 	var assetsPath string
 	possiblePaths := []string{

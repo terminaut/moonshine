@@ -17,6 +17,7 @@ import (
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
@@ -26,7 +27,7 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 		t.Skip("Test database not initialized")
 	}
 	db := testDB.DB()
-	handler := NewEquipmentItemHandler(db)
+	handler := NewEquipmentItemHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
@@ -67,7 +68,7 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 }
 
 func eqCtx(userID uuid.UUID) context.Context {
-	return context.WithValue(context.Background(), middleware.UserIDKey, userID)
+	return middleware.ContextWithUserID(context.Background(), userID)
 }
 
 func TestEquipmentItemHandler_GetEquipmentItems(t *testing.T) {
@@ -216,7 +217,7 @@ func TestEquipmentItemHandler_TakeOffEquipmentItem(t *testing.T) {
 	itemRepo := repository.NewEquipmentItemRepository(db)
 	invRepo := repository.NewInventoryRepository(db)
 	invRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: item.ID})
-	takeOnSvc := NewEquipmentItemTakeOnService(db, itemRepo, invRepo, repository.NewUserRepository(db))
+	takeOnSvc := services.NewEquipmentItemTakeOnService(db, itemRepo, invRepo, repository.NewUserRepository(db))
 	err := takeOnSvc.TakeOnEquipmentItem(context.Background(), user.ID, item.ID)
 	require.NoError(t, err)
 

@@ -57,7 +57,7 @@ func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
-			users.ring3_equipment_item_id, users.ring4_equipment_item_id, avatars.image as avatar
+			users.ring3_equipment_item_id, users.ring4_equipment_item_id, COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id
 		WHERE users.id = $1 AND users.deleted_at IS NULL
@@ -84,7 +84,7 @@ func (r *UserRepository) FindByUsername(username string) (*domain.User, error) {
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
-			users.ring3_equipment_item_id, users.ring4_equipment_item_id, avatars.image as avatar
+			users.ring3_equipment_item_id, users.ring4_equipment_item_id, COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id
 		WHERE users.username = $1 AND users.deleted_at IS NULL
