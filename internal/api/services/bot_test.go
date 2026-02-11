@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -61,7 +60,13 @@ func TestBotService_GetBotsByLocationSlug(t *testing.T) {
 	}
 
 	db := testDB.DB()
-	service := NewBotService(db)
+	service := NewBotService(
+		repository.NewLocationRepository(db),
+		repository.NewBotRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewFightRepository(db),
+		repository.NewRoundRepository(db),
+	)
 
 	t.Run("successfully get bots by location slug", func(t *testing.T) {
 		location, bot, err := setupBotTestData(db)
@@ -109,7 +114,13 @@ func TestBotService_Attack(t *testing.T) {
 	}
 
 	db := testDB.DB()
-	service := NewBotService(db)
+	service := NewBotService(
+		repository.NewLocationRepository(db),
+		repository.NewBotRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewFightRepository(db),
+		repository.NewRoundRepository(db),
+	)
 	ctx := context.Background()
 
 	setupAttackTestData := func(db *sqlx.DB) (*domain.Location, *domain.User, *domain.Bot, error) {

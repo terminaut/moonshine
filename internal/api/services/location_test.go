@@ -54,7 +54,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 	db := testDB.DB()
 	locationRepo := repository.NewLocationRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{})
+	service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
 	require.NoError(t, err)
 
 	t.Run("successful path finding - direct connection", func(t *testing.T) {

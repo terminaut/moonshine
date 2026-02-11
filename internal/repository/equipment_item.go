@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -83,7 +82,6 @@ func (r *EquipmentItemRepository) FindByIDs(ids []uuid.UUID) ([]*domain.Equipmen
 
 	items := []*domain.EquipmentItem{}
 	if err := r.db.Select(&items, query, pq.Array(ids)); err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 

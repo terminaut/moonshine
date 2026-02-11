@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -29,12 +28,12 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create location: %w", err)
 	}
 
-	categoryQuery := `INSERT INTO equipment_categories (name, type) VALUES ($1, $2::equipment_category_type) RETURNING id, created_at, updated_at`
+	categoryQuery := `INSERT INTO equipment_categories (name, type) VALUES ($1, $2::equipment_category_type) RETURNING id, created_at`
 	category := &domain.EquipmentCategory{
 		Name: "Weapon",
 		Type: "weapon",
 	}
-	err = db.QueryRow(categoryQuery, category.Name, category.Type).Scan(&category.ID, &category.CreatedAt, &category.UpdatedAt)
+	err = db.QueryRow(categoryQuery, category.Name, category.Type).Scan(&category.ID, &category.CreatedAt)
 	if err != nil {
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create category: %w", err)
 	}
@@ -57,7 +56,7 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 
 	userQuery := `INSERT INTO users (username, email, password, location_id, attack, defense, hp, current_hp, level, weapon_equipment_item_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, created_at, updated_at`
+		RETURNING id, created_at`
 	ts := time.Now().UnixNano()
 	username := fmt.Sprintf("testuser%d", ts)
 	user := &domain.User{
@@ -74,7 +73,7 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 	}
 	err = db.QueryRow(userQuery, user.Username, user.Email, user.Password, user.LocationID,
 		user.Attack, user.Defense, user.Hp, user.CurrentHp, user.Level, user.WeaponEquipmentItemID,
-	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create user: %w", err)
 	}

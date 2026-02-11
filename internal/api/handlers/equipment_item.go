@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -18,12 +19,12 @@ import (
 )
 
 type EquipmentItemHandler struct {
-	db                          *sqlx.DB
 	equipmentItemService        *services.EquipmentItemService
 	equipmentItemBuyService     *services.EquipmentItemBuyService
 	equipmentItemSellService    *services.EquipmentItemSellService
 	equipmentItemTakeOnService  *services.EquipmentItemTakeOnService
 	equipmentItemTakeOffService *services.EquipmentItemTakeOffService
+	equipmentItemRepo           *repository.EquipmentItemRepository
 	userRepo                    *repository.UserRepository
 	userCache                   r.Cache[domain.User]
 }
@@ -40,12 +41,12 @@ func NewEquipmentItemHandler(db *sqlx.DB, rdb *redis.Client) *EquipmentItemHandl
 	equipmentItemTakeOffService := services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo)
 
 	return &EquipmentItemHandler{
-		db:                          db,
 		equipmentItemService:        equipmentItemService,
 		equipmentItemBuyService:     equipmentItemBuyService,
 		equipmentItemSellService:    equipmentItemSellService,
 		equipmentItemTakeOnService:  equipmentItemTakeOnService,
 		equipmentItemTakeOffService: equipmentItemTakeOffService,
+		equipmentItemRepo:           equipmentItemRepo,
 		userRepo:                    userRepo,
 		userCache:                   r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
 	}
@@ -97,12 +98,12 @@ func (h *EquipmentItemHandler) BuyEquipmentItem(c echo.Context) error {
 
 	err = h.equipmentItemBuyService.BuyEquipmentItem(c.Request().Context(), userID, itemSlug)
 	if err != nil {
-		switch err {
-		case services.ErrEquipmentItemNotFound:
+		switch {
+		case errors.Is(err, services.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
-		case services.ErrInsufficientGold:
+		case errors.Is(err, services.ErrInsufficientGold):
 			return ErrBadRequest(c, "insufficient gold")
-		case repository.ErrUserNotFound:
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
 		default:
 			return ErrInternalServerError(c)
@@ -124,32 +125,27 @@ func (h *EquipmentItemHandler) TakeOnEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	inFight, fightErr := h.userRepo.InFight(userID)
-	if fightErr != nil {
-		return ErrInternalServerError(c)
-	}
-	if inFight {
-		return ErrBadRequest(c, "user is in fight")
+	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+		return err
 	}
 
-	equipmentItemRepo := repository.NewEquipmentItemRepository(h.db)
-	item, err := equipmentItemRepo.FindBySlug(itemSlug)
+	item, err := h.equipmentItemRepo.FindBySlug(itemSlug)
 	if err != nil {
 		return ErrNotFound(c, "equipment item not found")
 	}
 
 	err = h.equipmentItemTakeOnService.TakeOnEquipmentItem(c.Request().Context(), userID, item.ID)
 	if err != nil {
-		switch err {
-		case services.ErrEquipmentItemNotFound:
+		switch {
+		case errors.Is(err, services.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
-		case services.ErrItemNotInInventory:
+		case errors.Is(err, services.ErrItemNotInInventory):
 			return ErrBadRequest(c, "item not in inventory")
-		case services.ErrInsufficientLevel:
+		case errors.Is(err, services.ErrInsufficientLevel):
 			return ErrBadRequest(c, "insufficient level")
-		case services.ErrInvalidEquipmentType:
+		case errors.Is(err, services.ErrInvalidEquipmentType):
 			return ErrBadRequest(c, "invalid equipment type")
-		case repository.ErrUserNotFound:
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
 		default:
 			return ErrInternalServerError(c)
@@ -171,22 +167,18 @@ func (h *EquipmentItemHandler) TakeOffEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	inFight, fightErr := h.userRepo.InFight(userID)
-	if fightErr != nil {
-		return ErrInternalServerError(c)
-	}
-	if inFight {
-		return ErrBadRequest(c, "user is in fight")
+	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+		return err
 	}
 
 	err = h.equipmentItemTakeOffService.TakeOffEquipmentItem(c.Request().Context(), userID, slotName)
 	if err != nil {
-		switch err {
-		case services.ErrNoItemEquipped:
+		switch {
+		case errors.Is(err, services.ErrNoItemEquipped):
 			return ErrBadRequest(c, "no item equipped in this slot")
-		case services.ErrInvalidEquipmentType:
+		case errors.Is(err, services.ErrInvalidEquipmentType):
 			return ErrBadRequest(c, "invalid slot name")
-		case repository.ErrUserNotFound:
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
 		default:
 			return ErrInternalServerError(c)
@@ -208,22 +200,18 @@ func (h *EquipmentItemHandler) SellEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	inFight, fightErr := h.userRepo.InFight(userID)
-	if fightErr != nil {
-		return ErrInternalServerError(c)
-	}
-	if inFight {
-		return ErrBadRequest(c, "user is in fight")
+	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+		return err
 	}
 
 	err = h.equipmentItemSellService.SellEquipmentItem(c.Request().Context(), userID, itemSlug)
 	if err != nil {
-		switch err {
-		case services.ErrItemNotOwned:
+		switch {
+		case errors.Is(err, services.ErrItemNotOwned):
 			return ErrBadRequest(c, "item not owned")
-		case services.ErrEquipmentItemNotFound:
+		case errors.Is(err, services.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
-		case repository.ErrUserNotFound:
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
 		default:
 			return ErrInternalServerError(c)

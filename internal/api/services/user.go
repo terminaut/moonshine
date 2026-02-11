@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"moonshine/internal/domain"
@@ -46,7 +46,7 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*do
 func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID) (*domain.User, *domain.Location, bool, error) {
 	user, err := s.userCache.Get(ctx, userID.String())
 	if err != nil {
-		fmt.Printf("redis get error %s\n", err)
+		log.Printf("[UserService] redis get error: %v", err)
 	}
 
 	if user == nil {

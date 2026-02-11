@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
 
@@ -58,4 +59,12 @@ func SuccessResponse(c echo.Context, message string) error {
 		message = "ok"
 	}
 	return c.JSON(http.StatusOK, map[string]string{"message": message})
+}
+
+func resolveUserLocation(user *domain.User, locationRepo *repository.LocationRepository) *domain.Location {
+	if user == nil || user.LocationID == uuid.Nil {
+		return nil
+	}
+	location, _ := locationRepo.FindByID(user.LocationID)
+	return location
 }

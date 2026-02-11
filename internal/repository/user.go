@@ -17,17 +17,11 @@ var (
 )
 
 type UserRepository struct {
-	db           *sqlx.DB
-	locationRepo *LocationRepository
-	avatarRepo   *AvatarRepository
+	db *sqlx.DB
 }
 
 func NewUserRepository(db *sqlx.DB) *UserRepository {
-	return &UserRepository{
-		db:           db,
-		locationRepo: NewLocationRepository(db),
-		avatarRepo:   NewAvatarRepository(db),
-	}
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) Create(user *domain.User) error {

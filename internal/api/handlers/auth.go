@@ -1,15 +1,14 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/services"
-	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
 
@@ -19,11 +18,11 @@ type AuthHandler struct {
 	userRepo     *repository.UserRepository
 }
 
-func NewAuthHandler(db *sqlx.DB) *AuthHandler {
+func NewAuthHandler(db *sqlx.DB, jwtKey string) *AuthHandler {
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
-	authService := services.NewAuthService(userRepo, avatarRepo, locationRepo)
+	authService := services.NewAuthService(userRepo, avatarRepo, locationRepo, jwtKey)
 
 	return &AuthHandler{
 		authService:  authService,
@@ -66,20 +65,17 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 
 	user, token, err := h.authService.SignUp(c.Request().Context(), serviceInput)
 	if err != nil {
-		if err == services.ErrUserAlreadyExists {
+		switch {
+		case errors.Is(err, services.ErrUserAlreadyExists):
 			return ErrConflict(c, "user already exists")
-		}
-		if err == services.ErrInvalidInput {
+		case errors.Is(err, services.ErrInvalidInput):
 			return ErrBadRequest(c, "invalid input")
+		default:
+			return ErrInternalServerError(c)
 		}
-		return ErrInternalServerError(c)
 	}
 
-	var location *domain.Location
-	if user.LocationID != uuid.Nil {
-		location, _ = h.locationRepo.FindByID(user.LocationID)
-	}
-
+	location := resolveUserLocation(user, h.locationRepo)
 	inFight, _ := h.userRepo.InFight(user.ID)
 
 	return c.JSON(http.StatusOK, AuthResponse{
@@ -105,20 +101,17 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 
 	user, token, err := h.authService.SignIn(c.Request().Context(), serviceInput)
 	if err != nil {
-		if err == services.ErrInvalidCredentials {
+		switch {
+		case errors.Is(err, services.ErrInvalidCredentials):
 			return ErrUnauthorizedWithMessage(c, "invalid credentials")
-		}
-		if err == services.ErrInvalidInput {
+		case errors.Is(err, services.ErrInvalidInput):
 			return ErrBadRequest(c, "invalid input")
+		default:
+			return ErrInternalServerError(c)
 		}
-		return ErrInternalServerError(c)
 	}
 
-	var location *domain.Location
-	if user.LocationID != uuid.Nil {
-		location, _ = h.locationRepo.FindByID(user.LocationID)
-	}
-
+	location := resolveUserLocation(user, h.locationRepo)
 	inFight, _ := h.userRepo.InFight(user.ID)
 
 	return c.JSON(http.StatusOK, AuthResponse{

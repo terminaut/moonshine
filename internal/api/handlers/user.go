@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -15,10 +16,10 @@ import (
 )
 
 type UserHandler struct {
-	db               *sqlx.DB
-	userService      *services.UserService
-	inventoryService *services.InventoryService
-	userRepo         *repository.UserRepository
+	userService       *services.UserService
+	inventoryService  *services.InventoryService
+	userRepo          *repository.UserRepository
+	equipmentItemRepo *repository.EquipmentItemRepository
 }
 
 func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
@@ -31,10 +32,10 @@ func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
 	inventoryService := services.NewInventoryService(inventoryRepo)
 
 	return &UserHandler{
-		db:               db,
-		userService:      userService,
-		inventoryService: inventoryService,
-		userRepo:         userRepo,
+		userService:       userService,
+		inventoryService:  inventoryService,
+		userRepo:          userRepo,
+		equipmentItemRepo: repository.NewEquipmentItemRepository(db),
 	}
 }
 
@@ -46,7 +47,7 @@ func (h *UserHandler) GetCurrentUser(c echo.Context) error {
 
 	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)
 	if err != nil {
-		if err == repository.ErrUserNotFound {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			return ErrNotFound(c, "user not found")
 		}
 		return ErrInternalServerError(c)
@@ -75,8 +76,7 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	userRepo := repository.NewUserRepository(h.db)
-	user, err := userRepo.FindByID(userID)
+	user, err := h.userRepo.FindByID(userID)
 	if err != nil {
 		return ErrNotFound(c, "user not found")
 	}
@@ -110,8 +110,7 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]*dto.EquipmentItem{})
 	}
 
-	equipmentItemRepo := repository.NewEquipmentItemRepository(h.db)
-	list, err := equipmentItemRepo.FindByIDs(ids)
+	list, err := h.equipmentItemRepo.FindByIDs(ids)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}
@@ -157,13 +156,14 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 
 	user, err := h.userService.UpdateUser(c.Request().Context(), userID, avatarID)
 	if err != nil {
-		if err == repository.ErrUserNotFound {
+		switch {
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
-		}
-		if err == repository.ErrAvatarNotFound {
+		case errors.Is(err, repository.ErrAvatarNotFound):
 			return ErrNotFound(c, "avatar not found")
+		default:
+			return ErrInternalServerError(c)
 		}
-		return ErrInternalServerError(c)
 	}
 
 	user, location, inFight, err := h.userService.GetCurrentUserWithRelations(c.Request().Context(), userID)

@@ -11,8 +11,6 @@ type contextKey string
 
 const userIDKey contextKey = "userID"
 
-var UserIDKey = userIDKey
-
 var errUnauthorized = errors.New("unauthorized")
 
 func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
@@ -17,17 +16,21 @@ type BotService struct {
 	userRepo     *repository.UserRepository
 	fightRepo    *repository.FightRepository
 	roundRepo    *repository.RoundRepository
-	db           *sqlx.DB
 }
 
-func NewBotService(db *sqlx.DB) *BotService {
+func NewBotService(
+	locationRepo *repository.LocationRepository,
+	botRepo *repository.BotRepository,
+	userRepo *repository.UserRepository,
+	fightRepo *repository.FightRepository,
+	roundRepo *repository.RoundRepository,
+) *BotService {
 	return &BotService{
-		locationRepo: repository.NewLocationRepository(db),
-		botRepo:      repository.NewBotRepository(db),
-		userRepo:     repository.NewUserRepository(db),
-		fightRepo:    repository.NewFightRepository(db),
-		roundRepo:    repository.NewRoundRepository(db),
-		db:           db,
+		locationRepo: locationRepo,
+		botRepo:      botRepo,
+		userRepo:     userRepo,
+		fightRepo:    fightRepo,
+		roundRepo:    roundRepo,
 	}
 }
 

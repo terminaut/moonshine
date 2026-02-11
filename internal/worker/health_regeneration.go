@@ -2,7 +2,7 @@ package worker
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -52,7 +52,7 @@ func (w *HpWorker) StartWorker(ctx context.Context) {
 func (w *HpWorker) regenerateHp() {
 	regeneratedCount, err := w.healthRegenerationService.RegenerateAllUsers(1.0)
 	if err != nil {
-		fmt.Printf("[HpWorker] Error regenerating: %v\n", err)
+		log.Printf("[HpWorker] Error regenerating: %v\n", err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (w *HpWorker) regenerateHp() {
 	}
 
 	connectedUserIDs := w.hub.GetConnectedUserIDs()
-	fmt.Printf("[HpWorker] Regenerated %d users, %d connected\n", len(regeneratedCount), len(connectedUserIDs))
+	log.Printf("[HpWorker] Regenerated %d users, %d connected\n", len(regeneratedCount), len(connectedUserIDs))
 
 	if len(connectedUserIDs) == 0 {
 		return
@@ -69,16 +69,16 @@ func (w *HpWorker) regenerateHp() {
 
 	updates, err := w.userRepo.GetHPForUsers(connectedUserIDs)
 	if err != nil {
-		fmt.Printf("[HpWorker] Error getting HP: %v\n", err)
+		log.Printf("[HpWorker] Error getting HP: %v\n", err)
 		return
 	}
 
 	for _, update := range updates {
 		err := w.hub.SendHPUpdate(update.UserID, update.CurrentHp, update.Hp)
 		if err != nil {
-			fmt.Printf("[HpWorker] Error sending HP update to %s: %v\n", update.UserID, err)
+			log.Printf("[HpWorker] Error sending HP update to %s: %v\n", update.UserID, err)
 		} else {
-			fmt.Printf("[HpWorker] Sent HP update to %s: %d/%d\n", update.UserID, update.CurrentHp, update.Hp)
+			log.Printf("[HpWorker] Sent HP update to %s: %d/%d\n", update.UserID, update.CurrentHp, update.Hp)
 		}
 	}
 }

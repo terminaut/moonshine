@@ -77,7 +77,7 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 
 	e.Validator = NewValidator()
 
-	authHandler := handlers.NewAuthHandler(db)
+	authHandler := handlers.NewAuthHandler(db, cfg.JWTKey)
 	authGroup := e.Group("/api/auth")
 	authGroup.POST("/signup", authHandler.SignUp)
 	authGroup.POST("/signin", authHandler.SignIn)

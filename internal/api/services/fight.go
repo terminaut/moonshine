@@ -21,12 +21,18 @@ type FightService struct {
 	db        *sqlx.DB
 }
 
-func NewFightService(db *sqlx.DB) *FightService {
+func NewFightService(
+	db *sqlx.DB,
+	fightRepo *repository.FightRepository,
+	botRepo *repository.BotRepository,
+	userRepo *repository.UserRepository,
+	roundRepo *repository.RoundRepository,
+) *FightService {
 	return &FightService{
-		fightRepo: repository.NewFightRepository(db),
-		botRepo:   repository.NewBotRepository(db),
-		userRepo:  repository.NewUserRepository(db),
-		roundRepo: repository.NewRoundRepository(db),
+		fightRepo: fightRepo,
+		botRepo:   botRepo,
+		userRepo:  userRepo,
+		roundRepo: roundRepo,
 		db:        db,
 	}
 }

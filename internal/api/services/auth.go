@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"os"
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
 	"moonshine/internal/domain"
@@ -38,13 +37,15 @@ type AuthService struct {
 	userRepo     *repository.UserRepository
 	avatarRepo   *repository.AvatarRepository
 	locationRepo *repository.LocationRepository
+	jwtKey       string
 }
 
-func NewAuthService(userRepo *repository.UserRepository, avatarRepo *repository.AvatarRepository, locationRepo *repository.LocationRepository) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, avatarRepo *repository.AvatarRepository, locationRepo *repository.LocationRepository, jwtKey string) *AuthService {
 	return &AuthService{
 		userRepo:     userRepo,
 		avatarRepo:   avatarRepo,
 		locationRepo: locationRepo,
+		jwtKey:       jwtKey,
 	}
 }
 
@@ -172,11 +173,6 @@ func (s *AuthService) generateJWTToken(id uuid.UUID) (string, error) {
 		"exp": time.Now().Add(72 * time.Hour).Unix(),
 	}
 
-	jwtKey := os.Getenv("JWT_KEY")
-	if jwtKey == "" {
-		jwtKey = "secret"
-	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jwtKey))
+	return token.SignedString([]byte(s.jwtKey))
 }

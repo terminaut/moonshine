@@ -94,7 +94,13 @@ func TestFightService_GetCurrentFight(t *testing.T) {
 	}
 
 	db := testDB.DB()
-	service := NewFightService(db)
+	service := NewFightService(
+		db,
+		repository.NewFightRepository(db),
+		repository.NewBotRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewRoundRepository(db),
+	)
 	ctx := context.Background()
 
 	t.Run("successfully get current fight", func(t *testing.T) {
@@ -168,7 +174,13 @@ func TestFightService_Hit(t *testing.T) {
 	}
 
 	db := testDB.DB()
-	service := NewFightService(db)
+	service := NewFightService(
+		db,
+		repository.NewFightRepository(db),
+		repository.NewBotRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewRoundRepository(db),
+	)
 	ctx := context.Background()
 
 	t.Run("successfully hit when both have HP remaining", func(t *testing.T) {

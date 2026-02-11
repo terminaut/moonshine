@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -29,12 +28,12 @@ func setupTestData(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, uuid.UUID,
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create location: %w", err)
 	}
 
-	categoryQuery := `INSERT INTO equipment_categories (name, type) VALUES ($1, $2::equipment_category_type) RETURNING id, created_at, updated_at`
+	categoryQuery := `INSERT INTO equipment_categories (name, type) VALUES ($1, $2::equipment_category_type) RETURNING id, created_at`
 	category := &domain.EquipmentCategory{
 		Name: "Weapon",
 		Type: "weapon",
 	}
-	err = db.QueryRow(categoryQuery, category.Name, category.Type).Scan(&category.ID, &category.CreatedAt, &category.UpdatedAt)
+	err = db.QueryRow(categoryQuery, category.Name, category.Type).Scan(&category.ID, &category.CreatedAt)
 	if err != nil {
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create category: %w", err)
 	}

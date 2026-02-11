@@ -1,16 +1,15 @@
 package handlers
 
 import (
-	"moonshine/internal/api/dto"
+	"errors"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
+	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
-	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
 
@@ -20,8 +19,14 @@ type FightHandler struct {
 }
 
 func NewFightHandler(db *sqlx.DB) *FightHandler {
-	fightService := services.NewFightService(db)
 	locationRepo := repository.NewLocationRepository(db)
+	fightService := services.NewFightService(
+		db,
+		repository.NewFightRepository(db),
+		repository.NewBotRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewRoundRepository(db),
+	)
 
 	return &FightHandler{
 		fightService: fightService,
@@ -30,14 +35,14 @@ func NewFightHandler(db *sqlx.DB) *FightHandler {
 }
 
 func handleFightError(c echo.Context, err error) error {
-	switch err {
-	case services.ErrNoActiveFight:
+	switch {
+	case errors.Is(err, services.ErrNoActiveFight):
 		return ErrNotFound(c, "no active fight")
-	case services.ErrUserNotFound:
+	case errors.Is(err, services.ErrUserNotFound):
 		return ErrNotFound(c, "user not found")
-	case services.ErrBotNotFound:
+	case errors.Is(err, services.ErrBotNotFound):
 		return ErrNotFound(c, "bot not found")
-	case services.ErrInvalidBodyPart:
+	case errors.Is(err, services.ErrInvalidBodyPart):
 		return ErrBadRequest(c, "invalid body part")
 	default:
 		return ErrInternalServerError(c)
@@ -50,26 +55,12 @@ type GetCurrentFightResponse struct {
 	Fight dto.Fight `json:"fight"`
 }
 
-func (h *FightHandler) GetCurrentFight(c echo.Context) error {
-	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
-	if err != nil {
-		return ErrUnauthorized(c)
-	}
-
-	result, err := h.fightService.GetCurrentFight(c.Request().Context(), userID)
-	if err != nil {
-		return handleFightError(c, err)
-	}
-
+func (h *FightHandler) fightResponse(c echo.Context, result *services.GetCurrentFightResult) error {
 	if result == nil {
 		return ErrInternalServerError(c)
 	}
 
-	var location *domain.Location
-	if result.User != nil && result.User.LocationID != uuid.Nil {
-		location, _ = h.locationRepo.FindByID(result.User.LocationID)
-	}
-
+	location := resolveUserLocation(result.User, h.locationRepo)
 	userDTO := dto.UserFromDomain(result.User, location, nil, true)
 	botDTO := dto.BotFromDomain(result.Bot)
 	fightDTO := dto.FightFromDomain(result.Fight)
@@ -83,6 +74,20 @@ func (h *FightHandler) GetCurrentFight(c echo.Context) error {
 		Bot:   *botDTO,
 		Fight: *fightDTO,
 	})
+}
+
+func (h *FightHandler) GetCurrentFight(c echo.Context) error {
+	userID, err := middleware.GetUserIDFromContext(c.Request().Context())
+	if err != nil {
+		return ErrUnauthorized(c)
+	}
+
+	result, err := h.fightService.GetCurrentFight(c.Request().Context(), userID)
+	if err != nil {
+		return handleFightError(c, err)
+	}
+
+	return h.fightResponse(c, result)
 }
 
 type HitRequest struct {
@@ -109,27 +114,5 @@ func (h *FightHandler) Hit(c echo.Context) error {
 		return handleFightError(c, err)
 	}
 
-	if result == nil {
-		println("ERROR: Hit result is nil")
-		return ErrInternalServerError(c)
-	}
-
-	var location *domain.Location
-	if result.User != nil && result.User.LocationID != uuid.Nil {
-		location, _ = h.locationRepo.FindByID(result.User.LocationID)
-	}
-
-	userDTO := dto.UserFromDomain(result.User, location, nil, true)
-	botDTO := dto.BotFromDomain(result.Bot)
-	fightDTO := dto.FightFromDomain(result.Fight)
-
-	if userDTO == nil || botDTO == nil || fightDTO == nil {
-		return ErrInternalServerError(c)
-	}
-
-	return c.JSON(http.StatusOK, &GetCurrentFightResponse{
-		User:  *userDTO,
-		Bot:   *botDTO,
-		Fight: *fightDTO,
-	})
+	return h.fightResponse(c, result)
 }

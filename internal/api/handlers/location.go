@@ -19,7 +19,6 @@ import (
 )
 
 type LocationHandler struct {
-	db              *sqlx.DB
 	locationService *services.LocationService
 	locationRepo    *repository.LocationRepository
 	userRepo        *repository.UserRepository
@@ -46,7 +45,6 @@ func NewLocationHandler(db *sqlx.DB, rdb *redis.Client) *LocationHandler {
 	}
 
 	return &LocationHandler{
-		db:              db,
 		locationService: locationService,
 		locationRepo:    locationRepo,
 		userRepo:        userRepo,
@@ -70,12 +68,12 @@ func (h *LocationHandler) MoveToLocation(c echo.Context) error {
 
 	err = h.locationService.MoveToLocation(c.Request().Context(), userID, locationSlug)
 	if err != nil {
-		switch err {
-		case services.ErrLocationNotConnected:
+		switch {
+		case errors.Is(err, services.ErrLocationNotConnected):
 			return ErrBadRequest(c, "locations not connected")
-		case repository.ErrLocationNotFound:
+		case errors.Is(err, repository.ErrLocationNotFound):
 			return ErrNotFound(c, "location not found")
-		case repository.ErrUserNotFound:
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
 		default:
 			return ErrInternalServerError(c)
@@ -116,10 +114,10 @@ func (h *LocationHandler) MoveToCell(c echo.Context) error {
 
 	path, err := h.locationService.FindShortestPath(currentLocation.Slug, cellSlug)
 	if err != nil {
-		switch err {
-		case services.ErrLocationNotConnected:
+		switch {
+		case errors.Is(err, services.ErrLocationNotConnected):
 			return ErrBadRequest(c, "locations not connected")
-		case repository.ErrLocationNotFound:
+		case errors.Is(err, repository.ErrLocationNotFound):
 			return ErrNotFound(c, "location not found")
 		default:
 			return ErrInternalServerError(c)
@@ -161,8 +159,7 @@ func (h *LocationHandler) GetLocationCells(c echo.Context) error {
 		return err
 	}
 
-	locationRepo := repository.NewLocationRepository(h.db)
-	location, err := locationRepo.FindBySlug(locationSlug)
+	location, err := h.locationRepo.FindBySlug(locationSlug)
 	if err != nil {
 		if errors.Is(err, repository.ErrLocationNotFound) {
 			return ErrNotFound(c, "location not found")

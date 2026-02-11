@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"moonshine/internal/api/middleware"
+	"errors"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"moonshine/internal/api/dto"
+	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
 	"moonshine/internal/repository"
 )
@@ -22,8 +23,14 @@ type BotResponse struct {
 }
 
 func NewBotHandler(db *sqlx.DB) *BotHandler {
-	botService := services.NewBotService(db)
 	userRepo := repository.NewUserRepository(db)
+	botService := services.NewBotService(
+		repository.NewLocationRepository(db),
+		repository.NewBotRepository(db),
+		userRepo,
+		repository.NewFightRepository(db),
+		repository.NewRoundRepository(db),
+	)
 
 	return &BotHandler{
 		botService: botService,
@@ -69,13 +76,14 @@ func (h *BotHandler) Attack(c echo.Context) error {
 
 	_, err = h.botService.Attack(c.Request().Context(), botSlug, userID)
 	if err != nil {
-		if err == repository.ErrBotNotFound {
+		switch {
+		case errors.Is(err, repository.ErrBotNotFound):
 			return ErrNotFound(c, "bot not found")
-		}
-		if err == repository.ErrUserNotFound {
+		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
+		default:
+			return ErrBadRequest(c, err.Error())
 		}
-		return ErrBadRequest(c, err.Error())
 	}
 
 	return SuccessResponse(c, "attack initiated")
