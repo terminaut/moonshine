@@ -14,12 +14,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 
 	"moonshine/cmd/server/docs"
 	"moonshine/internal/api"
 	"moonshine/internal/config"
 	"moonshine/internal/metrics"
 	"moonshine/internal/repository"
+	"moonshine/internal/tracing"
 	"moonshine/internal/worker"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -35,6 +37,20 @@ func main() {
 
 	cfg := config.Load()
 
+	var tracerShutdown func()
+	if cfg.TracingEnabled {
+		tp, err := tracing.InitTracer(ctx, cfg.JaegerEndpoint)
+		if err != nil {
+			log.Fatalf("failed to initialize tracing: %v", err)
+		}
+		tracerShutdown = func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = tp.Shutdown(shutdownCtx)
+		}
+		log.Println("tracing enabled, exporting to", cfg.JaegerEndpoint)
+	}
+
 	db, err := repository.New(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
@@ -49,6 +65,9 @@ func main() {
 	defer stop()
 	defer db.Close()
 	defer func() { _ = rdb.Close() }()
+	if tracerShutdown != nil {
+		defer tracerShutdown()
+	}
 
 	docs.SwaggerInfo.Host = cfg.HTTPAddr
 	if os.Getenv("ENV") == "production" {
@@ -58,6 +77,7 @@ func main() {
 	}
 
 	e := echo.New()
+	e.Use(otelecho.Middleware("moonshine"))
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())

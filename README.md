@@ -51,9 +51,11 @@ API and WebSocket use relative URLs, so they go through the frontend origin; no 
 |---------|------|---------|
 | PostgreSQL | 5433 | Main database |
 | ClickHouse | 8123, 9000 | Analytics database |
+| Redis | 6379 | Cache |
 | Prometheus | 9090 | Metrics collection |
 | Grafana | 3001 | Monitoring dashboards |
 | Loki | 3100 | Log aggregation |
+| Jaeger | 16686, 4317 | Distributed tracing |
 | cAdvisor | 8088 | Container metrics |
 
 ## Monitoring
@@ -61,6 +63,7 @@ API and WebSocket use relative URLs, so they go through the frontend origin; no 
 Access:
 - Grafana: http://localhost:3001 (admin/admin)
 - Prometheus: http://localhost:9090
+- Jaeger UI: http://localhost:16686
 - API Metrics: http://localhost:8080/metrics
 - pprof (dev only): http://localhost:8080/debug/pprof/
 - cAdvisor: http://localhost:8088
@@ -330,6 +333,27 @@ Or use continuous profiling services:
 - [Google Cloud Profiler](https://cloud.google.com/profiler)
 - [Datadog Continuous Profiler](https://www.datadoghq.com/product/code-profiling/)
 
+## Tracing (OpenTelemetry + Jaeger)
+
+Distributed tracing shows request breakdown: HTTP handling, DB queries, etc.
+
+### Setup
+
+1. Start Jaeger:
+```bash
+docker compose up -d jaeger
+```
+
+2. Enable tracing:
+```env
+TRACING_ENABLED=true
+JAEGER_ENDPOINT=localhost:4317
+```
+
+3. Open Jaeger UI at http://localhost:16686, select service "moonshine".
+
+Each HTTP request produces a trace with child spans for every SQL query (via `otelsql`).
+
 ## ClickHouse Analytics
 
 ClickHouse automatically replicates `movement_logs` and `rounds` tables from PostgreSQL using WAL replication.
@@ -486,6 +510,7 @@ moonshine/
 │   │   └── routes.go    # Routes
 │   ├── domain/          # Domain models
 │   ├── repository/      # Database access
+│   ├── tracing/         # OpenTelemetry setup
 │   ├── worker/          # Background workers
 │   └── util/            # Utilities
 ├── migrations/          # SQL migrations
@@ -520,6 +545,10 @@ JWT_KEY=secret           # JWT signing key
 
 # Performance
 PPROF_ENABLED=true       # Enable pprof endpoints (auto-disabled in production)
+
+# Tracing
+TRACING_ENABLED=false    # Enable OpenTelemetry tracing
+JAEGER_ENDPOINT=localhost:4317  # OTLP gRPC endpoint
 
 # Database
 DATABASE_HOST=localhost

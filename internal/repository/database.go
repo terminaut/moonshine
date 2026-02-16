@@ -5,8 +5,10 @@ import (
 	"moonshine/internal/config"
 	"time"
 
+	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 type Database struct {
@@ -24,7 +26,17 @@ func New(cfg *config.Config) (*Database, error) {
 		cfg.Database.SSLMode,
 	)
 
-	db, err := sqlx.Connect("postgres", dsn)
+	driverName, err := otelsql.Register("postgres",
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+		otelsql.WithSpanOptions(otelsql.SpanOptions{
+			DisableErrSkip: true,
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("register otelsql driver: %w", err)
+	}
+
+	db, err := sqlx.Connect(driverName, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}

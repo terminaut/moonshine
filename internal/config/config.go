@@ -9,9 +9,11 @@ type Config struct {
 	Env          string
 	HTTPAddr     string
 	JWTKey       string
-	PprofEnabled bool
-	Database     DatabaseConfig
-	Redis        RedisConfig
+	PprofEnabled   bool
+	TracingEnabled bool
+	JaegerEndpoint string
+	Database       DatabaseConfig
+	Redis          RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -33,7 +35,9 @@ func Load() *Config {
 		Env:          getEnv("ENV", "development"),
 		HTTPAddr:     normalizeAddr(getEnv("HTTP_ADDR", ":8080")),
 		JWTKey:       getEnv("JWT_KEY", "secret"),
-		PprofEnabled: getEnvBool("PPROF_ENABLED", strings.ToLower(getEnv("ENV", "development")) != "production" && strings.ToLower(getEnv("ENV", "development")) != "prod"),
+		PprofEnabled:   getEnvBool("PPROF_ENABLED", strings.ToLower(getEnv("ENV", "development")) != "production" && strings.ToLower(getEnv("ENV", "development")) != "prod"),
+		TracingEnabled: getEnvBool("TRACING_ENABLED", false),
+		JaegerEndpoint: getEnv("JAEGER_ENDPOINT", "localhost:4317"),
 		Database: DatabaseConfig{
 			Host:     getEnv("DATABASE_HOST", "localhost"),
 			Port:     getEnv("DATABASE_PORT", "5433"),

@@ -171,6 +171,14 @@ services:
         labels: "service"
         tag: "redis"
 
+  jaeger:
+    image: jaegertracing/jaeger:2.15.1
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    networks:
+      - backend
+
 volumes:
   pgdata:
   clickhouse_data:
