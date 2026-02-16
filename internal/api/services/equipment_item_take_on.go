@@ -114,15 +114,16 @@ func (s *EquipmentItemTakeOnService) TakeOnEquipmentItem(ctx context.Context, us
 	var oldItemID *uuid.UUID
 
 	if equipmentType == "ring" {
-		if user.Ring1EquipmentItemID == nil {
+		switch {
+		case user.Ring1EquipmentItemID == nil:
 			fieldName = "ring1_equipment_item_id"
-		} else if user.Ring2EquipmentItemID == nil {
+		case user.Ring2EquipmentItemID == nil:
 			fieldName = "ring2_equipment_item_id"
-		} else if user.Ring3EquipmentItemID == nil {
+		case user.Ring3EquipmentItemID == nil:
 			fieldName = "ring3_equipment_item_id"
-		} else if user.Ring4EquipmentItemID == nil {
+		case user.Ring4EquipmentItemID == nil:
 			fieldName = "ring4_equipment_item_id"
-		} else {
+		default:
 			fieldName = "ring1_equipment_item_id"
 			oldItemID = user.Ring1EquipmentItemID
 		}

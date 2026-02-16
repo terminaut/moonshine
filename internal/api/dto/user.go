@@ -64,7 +64,7 @@ func UserFromDomain(user *domain.User, location *domain.Location, bots []*domain
 		Username:  user.Username,
 		Email:     user.Email,
 		Hp:        int(user.Hp),
-		CurrentHp: int(user.CurrentHp),
+		CurrentHp: user.CurrentHp,
 		Attack:    int(user.Attack),
 		Defense:   int(user.Defense),
 		Level:     int(user.Level),

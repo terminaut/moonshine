@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -112,7 +113,7 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 
 	rounds, err := s.roundRepo.FindByFightID(fight.ID)
 	if err != nil {
-		return nil, ErrInternalError
+		return nil, fmt.Errorf("%w: find rounds: %w", ErrInternalError, err)
 	}
 
 	if len(rounds) == 0 {
@@ -132,7 +133,7 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, ErrInternalError
+		return nil, fmt.Errorf("%w: begin tx: %w", ErrInternalError, err)
 	}
 	defer tx.Rollback()
 
@@ -141,7 +142,7 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 
 	if err = roundRepoTx.FinishRound(currentRound.ID, botAttackPoint, botDefensePoint, playerAttackPoint, playerDefensePoint,
 		playerDmg, botDmg, finalPlayerHp, finalBotHp); err != nil {
-		return nil, ErrInternalError
+		return nil, fmt.Errorf("%w: finish round: %w", ErrInternalError, err)
 	}
 
 	if finalPlayerHp == 0 || finalBotHp == 0 {
@@ -157,28 +158,28 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 		}
 
 		if err = s.userRepo.UpdateWithExt(tx, userID, fight.DroppedGold, fight.Exp, lvl, user.CurrentHp); err != nil {
-			return nil, ErrInternalError
+			return nil, fmt.Errorf("%w: update user: %w", ErrInternalError, err)
 		}
 
 		finished, err := fightRepoTx.Finish(fight.ID, fight.DroppedGold, fight.Exp)
 		if err != nil {
-			return nil, ErrInternalError
+			return nil, fmt.Errorf("%w: finish fight: %w", ErrInternalError, err)
 		}
 		fight = finished
 	} else {
 		if err = roundRepoTx.Create(fight.ID, finalPlayerHp, uint(finalBotHp)); err != nil {
-			return nil, ErrInternalError
+			return nil, fmt.Errorf("%w: create next round: %w", ErrInternalError, err)
 		}
 	}
 
 	updatedRounds, err := roundRepoTx.FindByFightID(fight.ID)
 	if err != nil {
-		return nil, ErrInternalError
+		return nil, fmt.Errorf("%w: find updated rounds: %w", ErrInternalError, err)
 	}
 	fight.Rounds = updatedRounds
 
 	if err = tx.Commit(); err != nil {
-		return nil, ErrInternalError
+		return nil, fmt.Errorf("%w: commit tx: %w", ErrInternalError, err)
 	}
 
 	return &GetCurrentFightResult{

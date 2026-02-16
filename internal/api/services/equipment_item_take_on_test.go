@@ -40,7 +40,7 @@ func setupTestData(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, uuid.UUID,
 
 	item := &domain.EquipmentItem{
 		Name:                "Test Sword",
-		Slug:                "test-sword",
+		Slug:                fmt.Sprintf("test-sword-%d", time.Now().UnixNano()),
 		Attack:              10,
 		Defense:             5,
 		Hp:                  20,

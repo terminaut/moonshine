@@ -15,18 +15,24 @@ func NewFightRepository(db ExtHandle) *FightRepository {
 }
 
 func (r *FightRepository) Create(fight *domain.Fight) (uuid.UUID, error) {
+	status := fight.Status
+	if status == "" {
+		status = domain.FightStatusInProgress
+	}
+
 	query := `
-		INSERT INTO fights (user_id, bot_id)
-		VALUES ($1, $2)
+		INSERT INTO fights (user_id, bot_id, status)
+		VALUES ($1, $2, $3)
 		RETURNING id
 	`
 
 	err := r.db.QueryRow(query,
-		fight.UserID, fight.BotID,
+		fight.UserID, fight.BotID, status,
 	).Scan(&fight.ID)
 	if err != nil {
 		return fight.ID, err
 	}
+	fight.Status = status
 	return fight.ID, err
 }
 

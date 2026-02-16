@@ -129,7 +129,7 @@ func (h *LocationHandler) MoveToCell(c echo.Context) error {
 	}
 
 	targetLocation, err := h.locationRepo.FindBySlug(cellSlug)
-	targetName := cellSlug
+	var targetName string
 	if err == nil && targetLocation != nil {
 		targetName = targetLocation.Name
 	} else {

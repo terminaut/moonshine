@@ -16,9 +16,7 @@ import (
 )
 
 func setupBotTestData(db *sqlx.DB) (*domain.Location, *domain.Bot, error) {
-	locationID := uuid.New()
 	location := &domain.Location{
-		Model: domain.Model{ID: locationID},
 		Name:  fmt.Sprintf("Test Location %d", time.Now().UnixNano()),
 		Slug:  fmt.Sprintf("test-location-%d", time.Now().UnixNano()),
 		Cell:  false,
@@ -28,9 +26,7 @@ func setupBotTestData(db *sqlx.DB) (*domain.Location, *domain.Bot, error) {
 		return nil, nil, err
 	}
 
-	botID := uuid.New()
 	bot := &domain.Bot{
-		Model:   domain.Model{ID: botID},
 		Name:    "Test Bot",
 		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
 		Attack:  5,
@@ -46,7 +42,7 @@ func setupBotTestData(db *sqlx.DB) (*domain.Location, *domain.Bot, error) {
 
 	linkID := uuid.New()
 	linkQuery := `INSERT INTO location_bots (id, location_id, bot_id) VALUES ($1, $2, $3)`
-	_, err := db.Exec(linkQuery, linkID, locationID, botID)
+	_, err := db.Exec(linkQuery, linkID, location.ID, bot.ID)
 	if err != nil {
 		return nil, nil, err
 	}

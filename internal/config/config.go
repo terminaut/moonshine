@@ -2,14 +2,16 @@ package config
 
 import (
 	"os"
+	"strings"
 )
 
 type Config struct {
-	Env      string
-	HTTPAddr string
-	JWTKey   string
-	Database DatabaseConfig
-	Redis    RedisConfig
+	Env          string
+	HTTPAddr     string
+	JWTKey       string
+	PprofEnabled bool
+	Database     DatabaseConfig
+	Redis        RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -28,9 +30,10 @@ type RedisConfig struct {
 
 func Load() *Config {
 	return &Config{
-		Env:      getEnv("ENV", "development"),
-		HTTPAddr: normalizeAddr(getEnv("HTTP_ADDR", ":8080")),
-		JWTKey:   getEnv("JWT_KEY", "secret"),
+		Env:          getEnv("ENV", "development"),
+		HTTPAddr:     normalizeAddr(getEnv("HTTP_ADDR", ":8080")),
+		JWTKey:       getEnv("JWT_KEY", "secret"),
+		PprofEnabled: getEnvBool("PPROF_ENABLED", strings.ToLower(getEnv("ENV", "development")) != "production" && strings.ToLower(getEnv("ENV", "development")) != "prod"),
 		Database: DatabaseConfig{
 			Host:     getEnv("DATABASE_HOST", "localhost"),
 			Port:     getEnv("DATABASE_PORT", "5433"),
@@ -55,6 +58,21 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if v == "" {
+		return fallback
+	}
+	switch v {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func normalizeAddr(addr string) string {

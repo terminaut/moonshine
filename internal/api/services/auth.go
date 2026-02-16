@@ -23,14 +23,14 @@ var (
 )
 
 type SignUpInput struct {
-	Username string
-	Email    string
-	Password string
+	Username string `valid:"required,length(3|20)"`
+	Email    string `valid:"required,email"`
+	Password string `valid:"required,length(3|20)"`
 }
 
 type SignInInput struct {
-	Username string
-	Password string
+	Username string `valid:"required,length(3|20)"`
+	Password string `valid:"required,length(3|20)"`
 }
 
 type AuthService struct {
@@ -132,17 +132,9 @@ func (s *AuthService) SignIn(ctx context.Context, input SignInInput) (*domain.Us
 }
 
 func (s *AuthService) validateSignUpInput(input SignUpInput) error {
-	type signUpValidator struct {
-		Username string `valid:"required,length(3|20)"`
-		Email    string `valid:"required,email"`
-		Password string `valid:"required,length(3|20)"`
-	}
+	type signUpValidator SignUpInput
 
-	v := signUpValidator{
-		Username: input.Username,
-		Email:    input.Email,
-		Password: input.Password,
-	}
+	v := signUpValidator(input)
 
 	if _, err := govalidator.ValidateStruct(v); err != nil {
 		return ErrInvalidInput
@@ -151,15 +143,9 @@ func (s *AuthService) validateSignUpInput(input SignUpInput) error {
 }
 
 func (s *AuthService) validateSignInInput(input SignInInput) error {
-	type signInValidator struct {
-		Username string `valid:"required,length(3|20)"`
-		Password string `valid:"required,length(3|20)"`
-	}
+	type signInValidator SignInInput
 
-	v := signInValidator{
-		Username: input.Username,
-		Password: input.Password,
-	}
+	v := signInValidator(input)
 
 	if _, err := govalidator.ValidateStruct(v); err != nil {
 		return ErrInvalidInput

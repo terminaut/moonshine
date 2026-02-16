@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -56,9 +57,7 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 }
 
 func setupFightWithBot(t *testing.T, db *sqlx.DB, user *domain.User) (*domain.Bot, *domain.Fight, error) {
-	botID := uuid.New()
 	bot := &domain.Bot{
-		Model:   domain.Model{ID: botID},
 		Name:    "Test Bot",
 		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
 		Attack:  8,
@@ -72,7 +71,7 @@ func setupFightWithBot(t *testing.T, db *sqlx.DB, user *domain.User) (*domain.Bo
 
 	linkID := uuid.New()
 	linkQuery := `INSERT INTO location_bots (id, location_id, bot_id) VALUES ($1, $2, $3)`
-	_, err := db.Exec(linkQuery, linkID, user.LocationID, botID)
+	_, err := db.Exec(linkQuery, linkID, user.LocationID, bot.ID)
 	require.NoError(t, err)
 
 	fight := &domain.Fight{
@@ -90,6 +89,12 @@ func setupFightWithBot(t *testing.T, db *sqlx.DB, user *domain.User) (*domain.Bo
 	require.NoError(t, err)
 
 	return bot, fight, nil
+}
+
+func newValidatedEcho() *echo.Echo {
+	e := echo.New()
+	e.Validator = &customValidator{v: validator.New()}
+	return e
 }
 
 func TestFightHandler_GetCurrentFight(t *testing.T) {
@@ -117,7 +122,7 @@ func TestFightHandler_GetCurrentFight(t *testing.T) {
 		assert.Equal(t, user.ID.String(), response.User.ID)
 		assert.Equal(t, user.Username, response.User.Username)
 		assert.Equal(t, int(user.Hp), response.User.Hp)
-		assert.Equal(t, int(user.CurrentHp), response.User.CurrentHp)
+		assert.Equal(t, user.CurrentHp, response.User.CurrentHp)
 		assert.True(t, response.User.InFight)
 
 		assert.Equal(t, bot.ID.String(), response.Bot.ID)
@@ -130,15 +135,37 @@ func TestFightHandler_GetCurrentFight(t *testing.T) {
 		assert.Equal(t, string(domain.FightStatusInProgress), response.Fight.Status)
 
 		require.NotEmpty(t, response.Fight.Rounds)
-		assert.Equal(t, int(user.CurrentHp), response.Fight.Rounds[0].PlayerHp)
+		assert.Equal(t, user.CurrentHp, response.Fight.Rounds[0].PlayerHp)
 		assert.Equal(t, int(bot.Hp), response.Fight.Rounds[0].BotHp)
 	})
 
 	t.Run("user without active fight returns 404", func(t *testing.T) {
+		location := &domain.Location{
+			Name: fmt.Sprintf("No Fight Location %d", time.Now().UnixNano()),
+			Slug: fmt.Sprintf("no-fight-location-%d", time.Now().UnixNano()),
+			Cell: false,
+		}
+		locationRepo := repository.NewLocationRepository(db)
+		require.NoError(t, locationRepo.Create(location))
+
+		userWithoutFight := &domain.User{
+			Username:   fmt.Sprintf("u%d", time.Now().UnixNano()%1000000),
+			Email:      fmt.Sprintf("u%d@test.com", time.Now().UnixNano()),
+			Password:   "password",
+			LocationID: location.ID,
+			Attack:     10,
+			Defense:    5,
+			Hp:         100,
+			CurrentHp:  100,
+			Level:      1,
+		}
+		userRepo := repository.NewUserRepository(db)
+		require.NoError(t, userRepo.Create(userWithoutFight))
+
 		req := httptest.NewRequest(http.MethodGet, "/api/fights/current", nil)
 		rec := httptest.NewRecorder()
 		e := echo.New()
-		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
+		ctx := middleware.ContextWithUserID(req.Context(), userWithoutFight.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 
@@ -177,7 +204,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/fights/current/hit", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
-		e := echo.New()
+		e := newValidatedEcho()
 		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
@@ -221,8 +248,8 @@ func TestFightHandler_Hit(t *testing.T) {
 		require.NotEmpty(t, inProgressRounds, "should have at least one in-progress round")
 		lastRound := inProgressRounds[len(inProgressRounds)-1]
 
-		assert.LessOrEqual(t, lastRound.PlayerHp, int(initialPlayerHp), "player HP should decrease or stay same")
-		assert.LessOrEqual(t, lastRound.BotHp, int(initialBotHp), "bot HP should decrease or stay same")
+		assert.LessOrEqual(t, lastRound.PlayerHp, initialPlayerHp, "player HP should decrease or stay same")
+		assert.LessOrEqual(t, lastRound.BotHp, initialBotHp, "bot HP should decrease or stay same")
 		assert.Greater(t, lastRound.PlayerHp, 0, "player should still have HP")
 		assert.Greater(t, lastRound.BotHp, 0, "bot should still have HP")
 	})
@@ -241,7 +268,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/fights/current/hit", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
-		e := echo.New()
+		e := newValidatedEcho()
 		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
@@ -270,7 +297,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/fights/current/hit", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
-		e := echo.New()
+		e := newValidatedEcho()
 		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
@@ -295,7 +322,7 @@ func TestFightHandler_Hit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/fights/current/hit", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
-		e := echo.New()
+		e := newValidatedEcho()
 		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
@@ -306,6 +333,28 @@ func TestFightHandler_Hit(t *testing.T) {
 	})
 
 	t.Run("user without active fight returns 404", func(t *testing.T) {
+		location := &domain.Location{
+			Name: fmt.Sprintf("No Fight Location %d", time.Now().UnixNano()),
+			Slug: fmt.Sprintf("no-hit-location-%d", time.Now().UnixNano()),
+			Cell: false,
+		}
+		locationRepo := repository.NewLocationRepository(db)
+		require.NoError(t, locationRepo.Create(location))
+
+		userWithoutFight := &domain.User{
+			Username:   fmt.Sprintf("u%d", time.Now().UnixNano()%1000000),
+			Email:      fmt.Sprintf("u%d@test.com", time.Now().UnixNano()),
+			Password:   "password",
+			LocationID: location.ID,
+			Attack:     10,
+			Defense:    5,
+			Hp:         100,
+			CurrentHp:  100,
+			Level:      1,
+		}
+		userRepo := repository.NewUserRepository(db)
+		require.NoError(t, userRepo.Create(userWithoutFight))
+
 		hitRequest := HitRequest{
 			Attack:  "HEAD",
 			Defense: "CHEST",
@@ -316,8 +365,8 @@ func TestFightHandler_Hit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/fights/current/hit", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
-		e := echo.New()
-		ctx := middleware.ContextWithUserID(req.Context(), user.ID)
+		e := newValidatedEcho()
+		ctx := middleware.ContextWithUserID(req.Context(), userWithoutFight.ID)
 		req = req.WithContext(ctx)
 		c := e.NewContext(req, rec)
 

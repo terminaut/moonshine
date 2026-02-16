@@ -17,10 +17,29 @@ import (
 
 const testJWTKey = "test-jwt-secret-key"
 
+func setupAuthTestData(db *repository.Database) error {
+	locationRepo := repository.NewLocationRepository(db.DB())
+
+	_, err := locationRepo.FindBySlug("moonshine")
+	if err == nil {
+		return nil
+	}
+
+	location := &domain.Location{
+		Name: "Moonshine",
+		Slug: "moonshine",
+		Cell: false,
+	}
+	return locationRepo.Create(location)
+}
+
 func TestAuthService_SignUp(t *testing.T) {
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
+
+	err := setupAuthTestData(testDB)
+	require.NoError(t, err, "failed to setup test data")
 
 	db := testDB.DB()
 	userRepo := repository.NewUserRepository(db)
@@ -32,8 +51,8 @@ func TestAuthService_SignUp(t *testing.T) {
 	t.Run("successful signup", func(t *testing.T) {
 		ts := time.Now().UnixNano()
 		input := SignUpInput{
-			Username: fmt.Sprintf("user%d", ts),
-			Email:    fmt.Sprintf("user%d@test.com", ts),
+			Username: fmt.Sprintf("u%d", ts%1000000),
+			Email:    fmt.Sprintf("u%d@test.com", ts),
 			Password: "password123",
 		}
 
@@ -64,7 +83,7 @@ func TestAuthService_SignUp(t *testing.T) {
 	t.Run("duplicate username returns error", func(t *testing.T) {
 		ts := time.Now().UnixNano()
 		input := SignUpInput{
-			Username: fmt.Sprintf("dup%d", ts),
+			Username: fmt.Sprintf("d%d", ts%1000000),
 			Email:    fmt.Sprintf("dup%d@test.com", ts),
 			Password: "password123",
 		}
@@ -128,6 +147,9 @@ func TestAuthService_SignIn(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
+	err := setupAuthTestData(testDB)
+	require.NoError(t, err, "failed to setup test data")
+
 	db := testDB.DB()
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
@@ -145,7 +167,7 @@ func TestAuthService_SignIn(t *testing.T) {
 	require.NoError(t, err)
 
 	user := &domain.User{
-		Username:   fmt.Sprintf("signin%d", ts),
+		Username:   fmt.Sprintf("s%d", ts%1000000),
 		Email:      fmt.Sprintf("signin%d@test.com", ts),
 		Password:   hashedPassword,
 		LocationID: location.ID,
@@ -225,6 +247,9 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
+	err := setupAuthTestData(testDB)
+	require.NoError(t, err, "failed to setup test data")
+
 	db := testDB.DB()
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
@@ -235,7 +260,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 
 		ts := time.Now().UnixNano()
 		input := SignUpInput{
-			Username: fmt.Sprintf("jwt%d", ts),
+			Username: fmt.Sprintf("j%d", ts%1000000),
 			Email:    fmt.Sprintf("jwt%d@test.com", ts),
 			Password: "password123",
 		}
@@ -262,7 +287,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 
 		ts := time.Now().UnixNano()
 		input := SignUpInput{
-			Username: fmt.Sprintf("exp%d", ts),
+			Username: fmt.Sprintf("e%d", ts%1000000),
 			Email:    fmt.Sprintf("exp%d@test.com", ts),
 			Password: "password123",
 		}
@@ -290,7 +315,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 
 		ts := time.Now().UnixNano()
 		input := SignUpInput{
-			Username: fmt.Sprintf("alg%d", ts),
+			Username: fmt.Sprintf("a%d", ts%1000000),
 			Email:    fmt.Sprintf("alg%d@test.com", ts),
 			Password: "password123",
 		}

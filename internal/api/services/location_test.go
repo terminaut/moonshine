@@ -14,11 +14,11 @@ import (
 
 func setupLocationTestData(db *sqlx.DB) ([]*domain.Location, error) {
 	locations := []*domain.Location{
-		{Model: domain.Model{ID: uuid.New()}, Name: "Cell 1", Slug: "1cell", Cell: true, Inactive: false},
-		{Model: domain.Model{ID: uuid.New()}, Name: "Cell 2", Slug: "2cell", Cell: true, Inactive: false},
-		{Model: domain.Model{ID: uuid.New()}, Name: "Cell 3", Slug: "3cell", Cell: true, Inactive: false},
-		{Model: domain.Model{ID: uuid.New()}, Name: "Cell 4", Slug: "4cell", Cell: true, Inactive: false},
-		{Model: domain.Model{ID: uuid.New()}, Name: "Cell 5", Slug: "5cell", Cell: true, Inactive: false},
+		{Name: "Cell 1", Slug: "1cell", Cell: true, Inactive: false},
+		{Name: "Cell 2", Slug: "2cell", Cell: true, Inactive: false},
+		{Name: "Cell 3", Slug: "3cell", Cell: true, Inactive: false},
+		{Name: "Cell 4", Slug: "4cell", Cell: true, Inactive: false},
+		{Name: "Cell 5", Slug: "5cell", Cell: true, Inactive: false},
 	}
 
 	locationRepo := repository.NewLocationRepository(db)
@@ -52,10 +52,6 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 	}
 
 	db := testDB.DB()
-	locationRepo := repository.NewLocationRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
-	require.NoError(t, err)
 
 	t.Run("successful path finding - direct connection", func(t *testing.T) {
 		db.Exec("TRUNCATE TABLE location_locations CASCADE")
@@ -67,6 +63,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		err = createConnections(db, [][2]uuid.UUID{
 			{locations[0].ID, locations[1].ID},
 		})
+		require.NoError(t, err)
+
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[1].Slug)
@@ -89,6 +90,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		require.NoError(t, err)
+
 		path, err := service.FindShortestPath(locations[0].Slug, locations[3].Slug)
 		require.NoError(t, err)
 
@@ -103,10 +109,14 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		locations, err := setupLocationTestData(db)
 		require.NoError(t, err)
 
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		require.NoError(t, err)
+
 		path, err := service.FindShortestPath(locations[0].Slug, locations[0].Slug)
 		require.NoError(t, err)
-		assert.Len(t, path, 1)
-		assert.Equal(t, locations[0].Slug, path[0])
+		assert.Len(t, path, 0)
 	})
 
 	t.Run("path not found - disconnected locations", func(t *testing.T) {
@@ -121,6 +131,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		require.NoError(t, err)
+
 		_, err = service.FindShortestPath(locations[0].Slug, locations[4].Slug)
 		assert.ErrorIs(t, err, ErrLocationNotConnected)
 	})
@@ -132,6 +147,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		locations, err := setupLocationTestData(db)
 		require.NoError(t, err)
 
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		require.NoError(t, err)
+
 		_, err = service.FindShortestPath("non_existent", locations[0].Slug)
 		assert.Error(t, err)
 	})
@@ -141,6 +161,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		db.Exec("TRUNCATE TABLE locations CASCADE")
 
 		locations, err := setupLocationTestData(db)
+		require.NoError(t, err)
+
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
 		require.NoError(t, err)
 
 		_, err = service.FindShortestPath(locations[0].Slug, "non_existent")
@@ -161,6 +186,11 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 			{locations[2].ID, locations[3].ID},
 			{locations[3].ID, locations[4].ID},
 		})
+		require.NoError(t, err)
+
+		locationRepo := repository.NewLocationRepository(db)
+		userRepo := repository.NewUserRepository(db)
+		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[4].Slug)

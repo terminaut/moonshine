@@ -43,6 +43,7 @@ API and WebSocket use relative URLs, so they go through the frontend origin; no 
 - Go 1.24+
 - Node.js 18+ and npm
 - Docker and Docker Compose
+- (Optional) Graphviz - for pprof graph visualization: `brew install graphviz`
 
 ## Services
 
@@ -60,7 +61,8 @@ API and WebSocket use relative URLs, so they go through the frontend origin; no 
 Access:
 - Grafana: http://localhost:3001 (admin/admin)
 - Prometheus: http://localhost:9090
-- API Metrics: http://localhost:1666/metrics
+- API Metrics: http://localhost:8080/metrics
+- pprof (dev only): http://localhost:8080/debug/pprof/
 - cAdvisor: http://localhost:8088
 
 ### Metrics
@@ -118,6 +120,215 @@ metrics.FightDuration.Observe(time.Since(start).Seconds())
 
 metrics.PlayersOnline.Set(float64(count))
 ```
+
+## Performance Profiling (pprof)
+
+pprof is enabled automatically in development (disabled in production).
+
+### Configuration
+
+Controlled via environment variable:
+```env
+PPROF_ENABLED=true  # auto-enabled in development
+```
+
+Or in code (internal/config/config.go):
+```go
+PprofEnabled: ENV != "production"  // disabled in prod by default
+```
+
+### Available Endpoints
+
+When enabled, pprof endpoints are available at:
+
+| Endpoint | Description |
+|----------|-------------|
+| `/debug/pprof/` | Index page with all profiles |
+| `/debug/pprof/profile` | CPU profile (30 sec default) |
+| `/debug/pprof/heap` | Memory allocation profile |
+| `/debug/pprof/goroutine` | Active goroutines |
+| `/debug/pprof/allocs` | All memory allocations |
+| `/debug/pprof/block` | Blocking profile |
+| `/debug/pprof/mutex` | Mutex contention |
+| `/debug/pprof/threadcreate` | Thread creation profile |
+| `/debug/pprof/trace` | Execution trace |
+
+### Quick Start
+
+> **⚠️ Note for zsh users:** URLs with `?` must be quoted:
+> ```bash
+> curl "http://localhost:8080/debug/pprof/profile?seconds=30" > cpu.prof
+> go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/profile?seconds=30"
+> ```
+
+**1. CPU Profiling** (find performance bottlenecks):
+```bash
+# Interactive web UI (recommended)
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/profile?seconds=30"
+
+# Or save to file first
+curl "http://localhost:8080/debug/pprof/profile?seconds=30" > cpu.prof
+go tool pprof -http=:9999 cpu.prof
+```
+
+**2. Memory Profiling** (find memory leaks):
+```bash
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/heap"
+
+# Or save to file
+curl "http://localhost:8080/debug/pprof/heap" > heap.prof
+go tool pprof -http=:9999 heap.prof
+```
+
+**3. Goroutine Profiling** (detect goroutine leaks):
+```bash
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/goroutine"
+
+# Or quick check (no quotes needed for debug param)
+curl "http://localhost:8080/debug/pprof/goroutine?debug=1"
+```
+
+### Common Use Cases
+
+**Scenario 1: App is slow**
+```bash
+# Collect 60-second CPU profile
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/profile?seconds=60"
+
+# In the web UI:
+# 1. Click "Flame Graph" tab
+# 2. Find the hottest functions (widest bars)
+# 3. Optimize those functions
+```
+
+**Scenario 2: Memory usage growing**
+```bash
+# Collect baseline
+curl "http://localhost:8080/debug/pprof/heap" > heap1.prof
+
+# Wait and generate load...
+
+# Collect after load
+curl "http://localhost:8080/debug/pprof/heap" > heap2.prof
+
+# Compare to find leaks
+go tool pprof -http=:9999 -base heap1.prof heap2.prof
+```
+
+**Scenario 3: Suspected goroutine leak**
+```bash
+# Check goroutine count
+curl "http://localhost:8080/debug/pprof/goroutine?debug=1" | head -1
+
+# Or visualize
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/goroutine"
+```
+
+### Building Graphs
+
+**Option 1: Interactive Web UI (recommended)**
+```bash
+# Collect and open in browser
+go tool pprof -http=:9999 "http://localhost:8080/debug/pprof/profile?seconds=30"
+
+# Or from saved file
+curl "http://localhost:8080/debug/pprof/profile?seconds=30" > cpu.prof
+go tool pprof -http=:9999 cpu.prof
+
+# Opens http://localhost:9999 with tabs:
+# - Top: Table view
+# - Graph: Call graph
+# - Flame Graph: 🔥 Best for CPU analysis
+# - Peek: Function details
+# - Source: Annotated code
+```
+
+**Option 2: Static images (requires graphviz)**
+```bash
+# Install graphviz first
+brew install graphviz
+
+# Generate PNG
+go tool pprof -png cpu.prof > cpu.png
+open cpu.png
+
+# Or SVG
+go tool pprof -svg cpu.prof > cpu.svg
+open cpu.svg
+
+# Or PDF
+go tool pprof -pdf cpu.prof > cpu.pdf
+```
+
+**Option 3: Online visualization**
+```bash
+# 1. Save profile
+curl "http://localhost:8080/debug/pprof/profile?seconds=30" > cpu.prof
+
+# 2. Upload to https://www.speedscope.app/
+# 3. Drag & drop cpu.prof file
+```
+
+### pprof Commands
+
+Inside `go tool pprof` interactive mode:
+
+```
+(pprof) top           # Top 10 functions by CPU/memory
+(pprof) top -cum      # Sort by cumulative
+(pprof) list funcName # Show source code with metrics
+(pprof) web           # Open graph in browser (requires graphviz)
+(pprof) png > out.png # Save graph as PNG
+(pprof) traces        # Show stack traces
+```
+
+### Troubleshooting
+
+**Problem: "zsh: no matches found"**
+```bash
+# ✗ Wrong (zsh interprets ? as wildcard)
+curl http://localhost:8080/debug/pprof/profile?seconds=30
+
+# ✓ Correct (use quotes)
+curl "http://localhost:8080/debug/pprof/profile?seconds=30"
+```
+
+**Problem: "Swagger opens instead of pprof"**
+```bash
+# Use a different port
+go tool pprof -http=:9999 cpu.prof  # not :8081
+
+# Check if pprof is enabled
+curl http://localhost:8080/debug/pprof/  # should return HTML
+
+# Verify PPROF_ENABLED=true in .env
+```
+
+**Problem: "Connection refused"**
+```bash
+# Check server is running
+curl http://localhost:8080/health
+
+# Verify pprof endpoint exists
+curl http://localhost:8080/debug/pprof/
+```
+
+### Production Safety
+
+⚠️ **Do not enable in production** without authentication:
+
+```go
+// To enable in production with auth:
+pprofGroup := e.Group("/debug/pprof")
+pprofGroup.Use(middleware.BasicAuth(func(user, pass string, c echo.Context) (bool, error) {
+    return user == "admin" && pass == os.Getenv("PPROF_PASSWORD"), nil
+}))
+```
+
+Or use continuous profiling services:
+- [Pyroscope](https://pyroscope.io/) (open source)
+- [Google Cloud Profiler](https://cloud.google.com/profiler)
+- [Datadog Continuous Profiler](https://www.datadoghq.com/product/code-profiling/)
 
 ## ClickHouse Analytics
 
@@ -246,10 +457,18 @@ Or use F5 in VS Code.
 
 ## API Endpoints
 
+### Core API
 - `GET /health` - health check
 - `POST /api/auth/signup` - register
 - `POST /api/auth/signin` - login
 - `GET /api/users/me` - current user (requires auth)
+
+### Monitoring & Profiling
+- `GET /metrics` - Prometheus metrics
+- `GET /debug/pprof/` - pprof index (dev only)
+- `GET /debug/pprof/profile` - CPU profile (dev only)
+- `GET /debug/pprof/heap` - Memory profile (dev only)
+- `GET /swagger/*` - API documentation
 
 ## Project Structure
 
@@ -294,13 +513,23 @@ Tests use separate `moonshine_test` database.
 Create `.env` from `.env.example`:
 
 ```env
-APP_PORT=1666
-JWT_KEY=secret
+# Server
+ENV=development           # production | development
+HTTP_ADDR=:8080          # Server address
+JWT_KEY=secret           # JWT signing key
 
-DB_HOST=postgres
-DB_PORT=5433
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=moonshine
-DB_SSLMODE=disable
+# Performance
+PPROF_ENABLED=true       # Enable pprof endpoints (auto-disabled in production)
+
+# Database
+DATABASE_HOST=localhost
+DATABASE_PORT=5433
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=moonshine
+DATABASE_SSL_MODE=disable
+
+# Redis
+REDIS_ADDR=localhost:6379
+REDIS_PASSWORD=secret
 ```

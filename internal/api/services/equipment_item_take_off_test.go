@@ -40,7 +40,7 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 
 	item := &domain.EquipmentItem{
 		Name:                "Test Sword",
-		Slug:                "test-sword",
+		Slug:                fmt.Sprintf("test-sword-%d", time.Now().UnixNano()),
 		Attack:              10,
 		Defense:             5,
 		Hp:                  20,
@@ -54,13 +54,11 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create item: %w", err)
 	}
 
-	userQuery := `INSERT INTO users (username, email, password, location_id, attack, defense, hp, current_hp, level, weapon_equipment_item_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, created_at`
 	ts := time.Now().UnixNano()
 	username := fmt.Sprintf("testuser%d", ts)
 	user := &domain.User{
 		Username:              username,
+		Name:                  username,
 		Email:                 fmt.Sprintf("test%d@example.com", ts),
 		Password:              "password",
 		LocationID:            location.ID,
@@ -69,13 +67,21 @@ func setupTestDataForTakeOff(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, 
 		Hp:                    40,
 		CurrentHp:             40,
 		Level:                 5,
+		Exp:                   0,
+		FreeStats:             15,
+		Gold:                  100,
 		WeaponEquipmentItemID: &item.ID,
 	}
-	err = db.QueryRow(userQuery, user.Username, user.Email, user.Password, user.LocationID,
-		user.Attack, user.Defense, user.Hp, user.CurrentHp, user.Level, user.WeaponEquipmentItemID,
-	).Scan(&user.ID, &user.CreatedAt)
+	userRepo := repository.NewUserRepository(db)
+	err = userRepo.Create(user)
 	if err != nil {
 		return nil, nil, uuid.Nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	updateQuery := `UPDATE users SET weapon_equipment_item_id = $1 WHERE id = $2`
+	_, err = db.Exec(updateQuery, item.ID, user.ID)
+	if err != nil {
+		return nil, nil, uuid.Nil, fmt.Errorf("failed to equip weapon: %w", err)
 	}
 
 	return user, item, category.ID, nil
@@ -131,16 +137,22 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 	})
 
 	t.Run("no item equipped in slot", func(t *testing.T) {
-		newUserQuery := `INSERT INTO users (username, email, password, location_id, attack, defense, hp, current_hp, level)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			RETURNING id, created_at, updated_at`
 		ts := time.Now().UnixNano()
-		username := fmt.Sprintf("testuser%d", ts)
-		var newUserID uuid.UUID
-		err := db.QueryRow(newUserQuery, username, fmt.Sprintf("test%d@example.com", ts), "password", user.LocationID, 1, 1, 20, 20, 5).Scan(&newUserID, nil, nil)
+		newUser := &domain.User{
+			Username:   fmt.Sprintf("u%d", ts%1000000),
+			Email:      fmt.Sprintf("test%d@example.com", ts),
+			Password:   "password",
+			LocationID: user.LocationID,
+			Attack:     1,
+			Defense:    1,
+			Hp:         20,
+			CurrentHp:  20,
+			Level:      5,
+		}
+		err := userRepo.Create(newUser)
 		require.NoError(t, err)
 
-		err = service.TakeOffEquipmentItem(ctx, newUserID, "weapon")
+		err = service.TakeOffEquipmentItem(ctx, newUser.ID, "weapon")
 		assert.ErrorIs(t, err, ErrNoItemEquipped)
 	})
 
@@ -150,9 +162,10 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 	})
 
 	t.Run("unequip one item with multiple equipped", func(t *testing.T) {
+		ts := time.Now().UnixNano()
 		locationID := uuid.New()
 		locationQuery := `INSERT INTO locations (id, name, slug, cell, inactive) VALUES ($1, $2, $3, $4, $5)`
-		_, err := db.Exec(locationQuery, locationID, "Test Location 2", "test_location_2", false, false)
+		_, err := db.Exec(locationQuery, locationID, "Test Location 2", fmt.Sprintf("test_location_2_%d", ts), false, false)
 		require.NoError(t, err)
 
 		weaponCatID := uuid.New()
@@ -167,22 +180,31 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 		weaponID := uuid.New()
 		itemQuery := `INSERT INTO equipment_items (id, name, slug, attack, defense, hp, required_level, price, equipment_category_id)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		_, err = db.Exec(itemQuery, weaponID, "Test Weapon", "test-weapon", 10, 0, 0, 1, 100, weaponCatID)
+		_, err = db.Exec(itemQuery, weaponID, "Test Weapon", fmt.Sprintf("test-weapon-%d", ts), 10, 0, 0, 1, 100, weaponCatID)
 		require.NoError(t, err)
 
 		chestID := uuid.New()
-		_, err = db.Exec(itemQuery, chestID, "Test Chest", "test-chest", 0, 15, 30, 1, 100, chestCatID)
+		_, err = db.Exec(itemQuery, chestID, "Test Chest", fmt.Sprintf("test-chest-%d", ts), 0, 15, 30, 1, 100, chestCatID)
 		require.NoError(t, err)
 
-		multiUserID := uuid.New()
-		ts := time.Now().UnixNano()
-		username := fmt.Sprintf("multiuser%d", ts)
-		userQuery := `INSERT INTO users (id, username, email, password, location_id, attack, defense, hp, current_hp, level, weapon_equipment_item_id, chest_equipment_item_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-		_, err = db.Exec(userQuery, multiUserID, username, fmt.Sprintf("multi%d@example.com", ts), "password", locationID, 11, 16, 50, 50, 5, weaponID, chestID)
+		ts = time.Now().UnixNano()
+		multiUser := &domain.User{
+			Username:   fmt.Sprintf("m%d", ts%1000000),
+			Email:      fmt.Sprintf("multi%d@example.com", ts),
+			Password:   "password",
+			LocationID: locationID,
+			Attack:     11,
+			Defense:    16,
+			Hp:         50,
+			CurrentHp:  50,
+			Level:      5,
+		}
+		err = userRepo.Create(multiUser)
+		require.NoError(t, err)
+		_, err = db.Exec(`UPDATE users SET weapon_equipment_item_id = $1, chest_equipment_item_id = $2 WHERE id = $3`, weaponID, chestID, multiUser.ID)
 		require.NoError(t, err)
 
-		err = service.TakeOffEquipmentItem(ctx, multiUserID, "weapon")
+		err = service.TakeOffEquipmentItem(ctx, multiUser.ID, "weapon")
 		require.NoError(t, err)
 
 		type stats struct {
@@ -192,7 +214,7 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 		}
 		var userStats stats
 		statsQuery := `SELECT attack, defense, hp FROM users WHERE id = $1`
-		err = db.Get(&userStats, statsQuery, multiUserID)
+		err = db.Get(&userStats, statsQuery, multiUser.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, uint(1), userStats.Attack)
@@ -201,7 +223,7 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 
 		var chestEquippedID uuid.UUID
 		chestQuery := `SELECT chest_equipment_item_id FROM users WHERE id = $1`
-		err = db.Get(&chestEquippedID, chestQuery, multiUserID)
+		err = db.Get(&chestEquippedID, chestQuery, multiUser.ID)
 		require.NoError(t, err)
 		assert.Equal(t, chestID, chestEquippedID)
 	})
@@ -220,19 +242,31 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 			weaponID, "Test Weapon 2", fmt.Sprintf("test-weapon-2-%d", time.Now().UnixNano()), 0, 0, 20, 1, 100, weaponCatID)
 		require.NoError(t, err)
 
-		testUserID := uuid.New()
-		_, err = db.Exec(`INSERT INTO users (id, username, email, password, location_id, attack, defense, hp, current_hp, level, weapon_equipment_item_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-			testUserID, fmt.Sprintf("hpuser%d", time.Now().UnixNano()), fmt.Sprintf("hpuser%d@example.com", time.Now().UnixNano()), "password", locationID, 1, 1, 40, 15, 5, weaponID)
+		ts := time.Now().UnixNano()
+		testUser := &domain.User{
+			Username:   fmt.Sprintf("h%d", ts%1000000),
+			Email:      fmt.Sprintf("hpuser%d@example.com", ts),
+			Password:   "password",
+			LocationID: locationID,
+			Attack:     1,
+			Defense:    1,
+			Hp:         40,
+			CurrentHp:  15,
+			Level:      5,
+		}
+		err = userRepo.Create(testUser)
+		require.NoError(t, err)
+		_, err = db.Exec(`UPDATE users SET weapon_equipment_item_id = $1 WHERE id = $2`, weaponID, testUser.ID)
 		require.NoError(t, err)
 
-		err = service.TakeOffEquipmentItem(ctx, testUserID, "weapon")
+		err = service.TakeOffEquipmentItem(ctx, testUser.ID, "weapon")
 		require.NoError(t, err)
 
 		var currentHp int
 		var hp int
-		err = db.Get(&currentHp, `SELECT current_hp FROM users WHERE id = $1`, testUserID)
+		err = db.Get(&currentHp, `SELECT current_hp FROM users WHERE id = $1`, testUser.ID)
 		require.NoError(t, err)
-		err = db.Get(&hp, `SELECT hp FROM users WHERE id = $1`, testUserID)
+		err = db.Get(&hp, `SELECT hp FROM users WHERE id = $1`, testUser.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, 15, currentHp)

@@ -1,6 +1,7 @@
-.PHONY: migrate-up migrate-down migrate-status migrate-create migrate-reset graphql dev server debug readme seed seed-avatars convert-avatars test test-db-setup setup swagger gotestsum-install test-dots go-tests
+.PHONY: migrate-up migrate-down migrate-status migrate-create migrate-reset graphql dev server debug readme seed seed-avatars convert-avatars test test-db-setup setup swagger gotestsum-install test-dots go-tests lint check
 
 GO := $(shell which go 2>/dev/null || echo /opt/homebrew/bin/go)
+DOCKER_COMPOSE := $(shell if command -v docker-compose >/dev/null 2>&1; then echo docker-compose; else echo "docker compose"; fi)
 
 migrate-up:
 	$(GO) run cmd/migrate/main.go -command up
@@ -64,11 +65,25 @@ setup: migrate-reset migrate-up seed
 
 test-db-setup:
 	@echo "Setting up test database..."
+	@echo "Starting postgres container..."
+	@$(DOCKER_COMPOSE) up -d postgres
+	@echo "Waiting for postgres to become ready..."
+	@for i in $$(seq 1 60); do \
+		if $(DOCKER_COMPOSE) exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then \
+			echo "Postgres is ready"; \
+			break; \
+		fi; \
+		if [ $$i -eq 60 ]; then \
+			echo "Postgres did not become ready in time"; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done
 	@echo "Applying migrations to test database (database will be created automatically if needed)..."
 	@DATABASE_NAME=moonshine_test $(GO) run cmd/migrate/main.go -command up
 
 test: test-db-setup
-	@$(GO) test ./... -v 2>&1 | tee /tmp/test_output.txt | awk ' \
+	@DATABASE_NAME=moonshine_test $(GO) test ./... -v 2>&1 | tee /tmp/test_output.txt | awk ' \
 	BEGIN { main_pass=0; main_fail=0; sub_pass=0; sub_fail=0 } \
 	/^--- PASS/ { main_pass++ } \
 	/^--- FAIL/ { main_fail++ } \
@@ -100,15 +115,28 @@ gotestsum-install:
 
 test-dots: test-db-setup
 	@if command -v gotestsum > /dev/null; then \
-		gotestsum --format dots -- -count=1 ./...; \
+		DATABASE_NAME=moonshine_test gotestsum --format dots -- -count=1 ./...; \
 	elif [ -f ~/go/bin/gotestsum ]; then \
-		~/go/bin/gotestsum --format dots -- -count=1 ./...; \
+		DATABASE_NAME=moonshine_test ~/go/bin/gotestsum --format dots -- -count=1 ./...; \
 	else \
 		echo "gotestsum not found. Install it with: make gotestsum-install"; \
 		exit 1; \
 	fi
 
 go-tests: test-dots
+
+lint:
+	@if command -v golangci-lint > /dev/null; then \
+		golangci-lint run ./...; \
+	elif [ -f ~/go/bin/golangci-lint ]; then \
+		~/go/bin/golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not found. Install it with:"; \
+		echo "  go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+		exit 1; \
+	fi
+
+check: lint go-tests
 
 swagger:
 	@if command -v swag > /dev/null; then \

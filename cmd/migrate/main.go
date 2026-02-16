@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 
 	"github.com/joho/godotenv"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 
 	"moonshine/internal/config"
@@ -57,9 +57,8 @@ func main() {
 			log.Fatalf("Failed to connect to database: %v", err)
 		}
 	}
-	defer db.Close()
-
 	if err := goose.SetDialect("postgres"); err != nil {
+		db.Close()
 		log.Fatalf("Failed to set dialect: %v", err)
 	}
 
@@ -68,42 +67,53 @@ func main() {
 	switch *command {
 	case "up":
 		if err := goose.Up(db, migrationsDir); err != nil {
+			db.Close()
 			log.Fatalf("Failed to run migrations: %v", err)
 		}
 		log.Println("Migrations applied successfully")
 	case "down":
 		if err := goose.Down(db, migrationsDir); err != nil {
+			db.Close()
 			log.Fatalf("Failed to rollback migrations: %v", err)
 		}
 		log.Println("Migrations rolled back successfully")
 	case "down-to":
 		if err := goose.DownTo(db, migrationsDir, *targetVersion); err != nil {
+			db.Close()
 			log.Fatalf("Failed to rollback migrations to version %d: %v", *targetVersion, err)
 		}
 		log.Printf("Migrations rolled back to version %d successfully", *targetVersion)
 	case "status":
 		if err := goose.Status(db, migrationsDir); err != nil {
+			db.Close()
 			log.Fatalf("Failed to get migration status: %v", err)
 		}
 	case "create":
 		if *name == "" {
+			db.Close()
 			log.Fatal("Migration name is required for create command")
 		}
 		if err := goose.Create(db, migrationsDir, *name, "sql"); err != nil {
+			db.Close()
 			log.Fatalf("Failed to create migration: %v", err)
 		}
 		log.Printf("Created migration: %s", *name)
 	default:
+		db.Close()
 		log.Fatalf("Unknown command: %s", *command)
 	}
+	db.Close()
 }
 
 func isDatabaseDoesNotExistError(err error) bool {
 	if err == nil {
 		return false
 	}
-	pqErr, ok := err.(*pq.Error)
-	return ok && pqErr.Code == "3D000"
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	return pqErr.Code == "3D000"
 }
 
 func createDatabase(cfg *config.Config) error {
@@ -130,8 +140,8 @@ func createDatabase(cfg *config.Config) error {
 	query := fmt.Sprintf("CREATE DATABASE %s", cfg.Database.Name)
 	_, err = db.Exec(query)
 	if err != nil {
-		pqErr, ok := err.(*pq.Error)
-		if ok && pqErr.Code == "42P04" {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "42P04" {
 			return nil
 		}
 		return fmt.Errorf("failed to create database: %w", err)

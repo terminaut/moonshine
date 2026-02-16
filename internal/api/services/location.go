@@ -123,11 +123,15 @@ func (s *LocationService) FetchCells(ctx context.Context, locationID uuid.UUID) 
 
 	cellsList := make([]domain.LocationCell, len(cells))
 	for i, cell := range cells {
+		image := ""
+		if cell.Image != nil {
+			image = *cell.Image
+		}
 		cellsList[i] = domain.LocationCell{
 			ID:       cell.ID.String(),
 			Slug:     cell.Slug,
 			Name:     cell.Name,
-			Image:    cell.Image,
+			Image:    image,
 			Inactive: cell.Inactive,
 		}
 	}

@@ -30,7 +30,7 @@ func (r *EquipmentItemRepository) FindByCategorySlug(slug string) ([]*domain.Equ
 func (r *EquipmentItemRepository) FindByCategorySlugAndArtifact(slug string, artifact bool) ([]*domain.EquipmentItem, error) {
 	query := `
 		SELECT ei.id, ei.created_at, ei.deleted_at, ei.name, ei.slug, ei.attack, ei.defense, ei.hp,
-			ei.required_level, ei.price, ei.artifact, ei.equipment_category_id, ei.image
+			ei.required_level, ei.price, ei.artifact, ei.equipment_category_id, COALESCE(ei.image, '') as image
 		FROM equipment_items ei
 		INNER JOIN equipment_categories ec ON ei.equipment_category_id = ec.id
 		WHERE ec.type = $1::equipment_category_type 
@@ -52,7 +52,7 @@ func (r *EquipmentItemRepository) FindByCategorySlugAndArtifact(slug string, art
 func (r *EquipmentItemRepository) FindByID(id uuid.UUID) (*domain.EquipmentItem, error) {
 	query := `
 		SELECT id, created_at, deleted_at, name, slug, attack, defense, hp,
-			required_level, price, artifact, equipment_category_id, image
+			required_level, price, artifact, equipment_category_id, COALESCE(image, '') as image
 		FROM equipment_items
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -72,7 +72,7 @@ func (r *EquipmentItemRepository) FindByID(id uuid.UUID) (*domain.EquipmentItem,
 func (r *EquipmentItemRepository) FindByIDs(ids []uuid.UUID) ([]*domain.EquipmentItem, error) {
 	query := `
 		SELECT ei.id, ei.created_at, ei.deleted_at, ei.name, ei.slug, ei.attack, ei.defense, ei.hp,
-			required_level, ei.price, ei.artifact, ei.equipment_category_id, ei.image, ec.type as equipment_type
+			required_level, ei.price, ei.artifact, ei.equipment_category_id, COALESCE(ei.image, '') as image, ec.type as equipment_type
 		FROM equipment_items ei
 		INNER JOIN equipment_categories ec 
 		    ON ei.equipment_category_id = ec.id
@@ -91,7 +91,7 @@ func (r *EquipmentItemRepository) FindByIDs(ids []uuid.UUID) ([]*domain.Equipmen
 func (r *EquipmentItemRepository) FindBySlug(slug string) (*domain.EquipmentItem, error) {
 	query := `
 		SELECT id, created_at, deleted_at, name, slug, attack, defense, hp,
-			required_level, price, artifact, equipment_category_id, image
+			required_level, price, artifact, equipment_category_id, COALESCE(image, '') as image
 		FROM equipment_items
 		WHERE slug = $1 AND deleted_at IS NULL
 	`

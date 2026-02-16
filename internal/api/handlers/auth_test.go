@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +78,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 	})
 
 	t.Run("successful signup returns 200 and token", func(t *testing.T) {
-		u := fmt.Sprintf("user%d", time.Now().UnixNano())
+		u := fmt.Sprintf("u%d", time.Now().UnixNano()%1000000)
 		body := map[string]string{
 			"username": u,
 			"email":    fmt.Sprintf("%s@test.com", u),
@@ -92,7 +92,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 
 		err := handler.SignUp(c)
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		require.Equal(t, http.StatusOK, rec.Code)
 
 		var resp AuthResponse
 		err = json.Unmarshal(rec.Body.Bytes(), &resp)
@@ -103,7 +103,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 	})
 
 	t.Run("duplicate username returns 409", func(t *testing.T) {
-		u := fmt.Sprintf("dup%d", time.Now().UnixNano())
+		u := fmt.Sprintf("d%d", time.Now().UnixNano()%1000000)
 		userRepo := repository.NewUserRepository(db)
 		loc := &domain.Location{Name: "L", Slug: "loc-" + u, Cell: false, Inactive: false}
 		locRepo := repository.NewLocationRepository(db)
@@ -136,7 +136,7 @@ func TestAuthHandler_SignIn(t *testing.T) {
 	err := ensureMoonshineLocation(db)
 	require.NoError(t, err)
 
-	u := fmt.Sprintf("signin%d", time.Now().UnixNano())
+	u := fmt.Sprintf("s%d", time.Now().UnixNano()%1000000)
 	signUpBody := map[string]string{"username": u, "email": u + "@test.com", "password": "pass123"}
 	b, _ := json.Marshal(signUpBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/signup", bytes.NewBuffer(b))
@@ -181,7 +181,7 @@ func TestAuthHandler_SignIn(t *testing.T) {
 
 		err := handler.SignIn(c)
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		require.Equal(t, http.StatusOK, rec.Code)
 
 		var resp AuthResponse
 		err = json.Unmarshal(rec.Body.Bytes(), &resp)

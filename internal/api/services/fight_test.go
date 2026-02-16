@@ -16,12 +16,10 @@ import (
 )
 
 func setupFightTestData(db *sqlx.DB) (*domain.Location, *domain.User, *domain.Bot, *domain.Fight, error) {
-	locationID := uuid.New()
 	location := &domain.Location{
-		Model: domain.Model{ID: locationID},
-		Name:  fmt.Sprintf("Test Location %d", time.Now().UnixNano()),
-		Slug:  fmt.Sprintf("test-location-%d", time.Now().UnixNano()),
-		Cell:  false,
+		Name: fmt.Sprintf("Test Location %d", time.Now().UnixNano()),
+		Slug: fmt.Sprintf("test-location-%d", time.Now().UnixNano()),
+		Cell: false,
 	}
 	locationRepo := repository.NewLocationRepository(db)
 	if err := locationRepo.Create(location); err != nil {
@@ -44,9 +42,7 @@ func setupFightTestData(db *sqlx.DB) (*domain.Location, *domain.User, *domain.Bo
 		return nil, nil, nil, nil, err
 	}
 
-	botID := uuid.New()
 	bot := &domain.Bot{
-		Model:   domain.Model{ID: botID},
 		Name:    "Test Bot",
 		Slug:    fmt.Sprintf("test-bot-%d", time.Now().UnixNano()),
 		Attack:  8,
@@ -62,7 +58,7 @@ func setupFightTestData(db *sqlx.DB) (*domain.Location, *domain.User, *domain.Bo
 
 	linkID := uuid.New()
 	linkQuery := `INSERT INTO location_bots (id, location_id, bot_id) VALUES ($1, $2, $3)`
-	_, err := db.Exec(linkQuery, linkID, locationID, botID)
+	_, err := db.Exec(linkQuery, linkID, location.ID, bot.ID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -127,7 +123,7 @@ func TestFightService_GetCurrentFight(t *testing.T) {
 
 		require.NotEmpty(t, result.Fight.Rounds)
 		assert.Equal(t, user.CurrentHp, result.Fight.Rounds[0].PlayerHp)
-		assert.Equal(t, bot.Hp, result.Fight.Rounds[0].BotHp)
+		assert.Equal(t, int(bot.Hp), result.Fight.Rounds[0].BotHp)
 		assert.Equal(t, domain.RoundStatusInProgress, result.Fight.Rounds[0].Status)
 	})
 
@@ -188,7 +184,7 @@ func TestFightService_Hit(t *testing.T) {
 		require.NoError(t, err)
 
 		initialUserHp := user.CurrentHp
-		initialBotHp := bot.Hp
+		initialBotHp := int(bot.Hp)
 
 		result, err := service.Hit(ctx, user.ID, "HEAD", "CHEST")
 		require.NoError(t, err)
@@ -227,8 +223,8 @@ func TestFightService_Hit(t *testing.T) {
 
 		assert.LessOrEqual(t, lastRound.PlayerHp, initialUserHp, "player HP should decrease or stay same")
 		assert.LessOrEqual(t, lastRound.BotHp, initialBotHp, "bot HP should decrease or stay same")
-		assert.Greater(t, lastRound.PlayerHp, uint(0), "player should still have HP")
-		assert.Greater(t, lastRound.BotHp, uint(0), "bot should still have HP")
+		assert.Greater(t, lastRound.PlayerHp, 0, "player should still have HP")
+		assert.Greater(t, lastRound.BotHp, 0, "bot should still have HP")
 	})
 
 	t.Run("invalid attack point returns error", func(t *testing.T) {

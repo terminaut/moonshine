@@ -44,8 +44,8 @@ func RoundFromDomain(round *domain.Round) *Round {
 		PlayerDamage: int(round.PlayerDamage),
 		BotDamage:    int(round.BotDamage),
 		Status:       string(round.Status),
-		PlayerHp:     int(round.PlayerHp),
-		BotHp:        int(round.BotHp),
+		PlayerHp:     round.PlayerHp,
+		BotHp:        round.BotHp,
 		CreatedAt:    round.CreatedAt,
 	}
 

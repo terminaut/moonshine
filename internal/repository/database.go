@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"moonshine/internal/config"
-	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -47,11 +46,4 @@ func (d *Database) Close() error {
 
 func (d *Database) DB() *sqlx.DB {
 	return d.db
-}
-
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
 }

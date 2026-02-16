@@ -19,6 +19,10 @@ import (
 	"moonshine/internal/util"
 )
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env not loaded, relying on environment")
@@ -29,13 +33,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
 
 	log.Println("Starting seed process...")
 
 	if err := truncateTables(db.DB()); err != nil {
+		db.Close()
 		log.Fatalf("Failed to truncate tables: %v", err)
 	}
+	defer db.Close()
 
 	seedAvatars(db.DB())
 	seedEquipmentCategories(db.DB())
@@ -151,10 +156,7 @@ func seedUsers(db *sqlx.DB) {
 	if err == nil && len(files) > 0 {
 		filename := filepath.Base(files[0])
 		imagePath := filepath.Join("players/avatars", filename)
-		firstAvatar, err = avatarRepo.FindByImage(imagePath)
-		if err != nil {
-		}
-	} else {
+		firstAvatar, _ = avatarRepo.FindByImage(imagePath)
 	}
 
 	moonshineLocation, err := locationRepo.FindStartLocation()
@@ -200,10 +202,8 @@ func seedLocations(db *sqlx.DB) error {
 
 	moonshineLocation, err := locationRepo.FindStartLocation()
 	if err == nil && moonshineLocation != nil {
-		if _, err := db.Exec("UPDATE locations SET cell = false WHERE slug IN ('moonshine', 'shop_of_artifacts', 'weapon_shop')"); err != nil {
-		}
-		if _, err := db.Exec("UPDATE locations SET cell = true WHERE slug LIKE '%cell'"); err != nil {
-		}
+		_, _ = db.Exec("UPDATE locations SET cell = false WHERE slug IN ('moonshine', 'shop_of_artifacts', 'weapon_shop')")
+		_, _ = db.Exec("UPDATE locations SET cell = true WHERE slug LIKE '%cell'")
 		return nil
 	}
 
@@ -212,8 +212,8 @@ func seedLocations(db *sqlx.DB) error {
 		Slug:     "moonshine",
 		Cell:     false,
 		Inactive: false,
-		Image:    "cities/moonshine/icon.jpg",
-		ImageBg:  "cities/moonshine/bg.jpg",
+		Image:    strPtr("cities/moonshine/icon.jpg"),
+		ImageBg:  strPtr("cities/moonshine/bg.jpg"),
 	}
 
 	if err := locationRepo.Create(moonshineLocation); err != nil {
@@ -237,8 +237,8 @@ func seedLocations(db *sqlx.DB) error {
 			Slug:     shop.slug,
 			Cell:     false,
 			Inactive: false,
-			Image:    fmt.Sprintf("cities/moonshine/%s/icon.png", shop.slug),
-			ImageBg:  fmt.Sprintf("cities/moonshine/%s/bg.jpg", shop.slug),
+			Image:    strPtr(fmt.Sprintf("cities/moonshine/%s/icon.png", shop.slug)),
+			ImageBg:  strPtr(fmt.Sprintf("cities/moonshine/%s/bg.jpg", shop.slug)),
 		}
 
 		if err := locationRepo.Create(shopLocation); err != nil {
@@ -266,8 +266,8 @@ func seedLocations(db *sqlx.DB) error {
 		Slug:     "wayward_pines",
 		Cell:     false,
 		Inactive: false,
-		Image:    "wayward_pines/icon.png",
-		ImageBg:  "wayward_pines/bg.jpg",
+		Image:    strPtr("wayward_pines/icon.png"),
+		ImageBg:  strPtr("wayward_pines/bg.jpg"),
 	}
 
 	if err := locationRepo.Create(waywardPinesLocation); err != nil {
@@ -360,8 +360,8 @@ func seedLocations(db *sqlx.DB) error {
 			Slug:     cellSlug,
 			Cell:     true,
 			Inactive: false,
-			Image:    fmt.Sprintf("wayward_pines/cells/%s.png", cellSlug),
-			ImageBg:  "",
+			Image:    strPtr(fmt.Sprintf("wayward_pines/cells/%s.png", cellSlug)),
+			ImageBg:  nil,
 		}
 
 		if err := locationRepo.Create(cellLocation); err != nil {
