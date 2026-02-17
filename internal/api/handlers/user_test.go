@@ -27,7 +27,7 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewUserHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),

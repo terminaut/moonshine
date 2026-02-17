@@ -26,7 +26,7 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewEquipmentItemHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),

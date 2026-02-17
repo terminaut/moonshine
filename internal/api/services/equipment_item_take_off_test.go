@@ -92,7 +92,7 @@ func TestEquipmentItemTakeOffService_TakeOffEquipmentItem(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 	ctx := context.Background()
 
 	user, item, _, err := setupTestDataForTakeOff(db)

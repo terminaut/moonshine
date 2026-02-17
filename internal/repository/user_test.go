@@ -17,8 +17,8 @@ func TestUserRepository_Create(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{
@@ -47,8 +47,8 @@ func TestUserRepository_FindByUsername(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{
@@ -80,8 +80,8 @@ func TestUserRepository_FindByID(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{
@@ -112,7 +112,7 @@ func TestUserRepository_FindByUsername_NotFound(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
 
 	_, err := repo.FindByUsername("nonexistent")
 	assert.ErrorIs(t, err, ErrUserNotFound)
@@ -123,7 +123,7 @@ func TestUserRepository_FindByID_NotFound(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
 
 	_, err := repo.FindByID(uuid.New())
 	assert.ErrorIs(t, err, ErrUserNotFound)
@@ -134,10 +134,10 @@ func TestUserRepository_RegenerateAllUsersHealth(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewUserRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
-	botRepo := NewBotRepository(testDB.DB())
-	fightRepo := NewFightRepository(testDB.DB())
+	repo := NewUserRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
+	botRepo := NewBotRepository(testDB)
+	fightRepo := NewFightRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{

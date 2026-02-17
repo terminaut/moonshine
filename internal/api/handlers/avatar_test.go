@@ -22,7 +22,7 @@ func setupAvatarHandlerTest(t *testing.T) (*AvatarHandler, *domain.User, echo.Ec
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewAvatarHandler(db)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),

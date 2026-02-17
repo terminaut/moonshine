@@ -6,6 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/XSAM/otelsql v0.41.0
+	github.com/alicebob/miniredis/v2 v2.36.1
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/go-playground/validator/v10 v10.30.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
@@ -66,6 +67,7 @@ require (
 	github.com/swaggo/files/v2 v2.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect

@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"moonshine/internal/config"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,9 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
-	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,34 +20,15 @@ import (
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
+	"moonshine/internal/testutil"
 )
 
-var testDB *repository.Database
+var testDB *sqlx.DB
 
 func TestMain(m *testing.M) {
-	_ = godotenv.Load("../../../.env.test")
-	cfg := config.Load()
-
-	db, err := repository.New(cfg)
+	db, err := testutil.SetupTestDB("../../../.env.test", "../../../migrations")
 	if err != nil {
-		testDB = nil
-		code := m.Run()
-		os.Exit(code)
-	}
-	if err = goose.SetDialect("postgres"); err != nil {
-		testDB = nil
-		code := m.Run()
-		os.Exit(code)
-	}
-	if err = goose.Up(db.DB().DB, "../../../migrations"); err != nil {
-		testDB = nil
-		code := m.Run()
-		os.Exit(code)
-	}
-	if err = ensureTestSchema(db.DB()); err != nil {
-		testDB = nil
-		code := m.Run()
-		os.Exit(code)
+		log.Printf("Test database not available: %v", err)
 	}
 	testDB = db
 
@@ -58,57 +37,14 @@ func TestMain(m *testing.M) {
 	if testDB != nil {
 		testDB.Close()
 	}
-	os.Exit(code)
-}
-
-func ensureTestSchema(db *sqlx.DB) error {
-	statements := []string{
-		`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-		`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
-		`ALTER TABLE fights ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
-		`ALTER TABLE fights ADD COLUMN IF NOT EXISTS exp INTEGER NOT NULL DEFAULT 0`,
-		`ALTER TABLE equipment_categories ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-		`ALTER TABLE equipment_categories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
-		`ALTER TABLE equipment_items ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-		`ALTER TABLE equipment_items ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
-		`ALTER TABLE equipment_items ADD COLUMN IF NOT EXISTS artifact BOOLEAN NOT NULL DEFAULT false`,
-		`ALTER TABLE equipment_items ADD COLUMN IF NOT EXISTS image VARCHAR(255)`,
-		`DO $$ BEGIN
-			IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'body_part') THEN
-				IF NOT EXISTS (
-					SELECT 1
-					FROM pg_enum
-					WHERE enumlabel = 'NECK'
-					  AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'body_part')
-				) THEN
-					ALTER TYPE body_part ADD VALUE 'NECK';
-				END IF;
-			END IF;
-		END $$`,
-		`CREATE TABLE IF NOT EXISTS inventory (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_at TIMESTAMP,
-			user_id UUID NOT NULL,
-			equipment_item_id UUID NOT NULL,
-			CONSTRAINT fk_inventory_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-			CONSTRAINT fk_inventory_item FOREIGN KEY (equipment_item_id) REFERENCES equipment_items(id) ON DELETE CASCADE
-		)`,
-	}
-
-	for _, stmt := range statements {
-		if _, err := db.Exec(stmt); err != nil {
-			return err
-		}
-	}
-	return nil
+	os.Exit(code) //nolint:gocritic
 }
 
 func setupBotHandlerTest(t *testing.T) (*BotHandler, *sqlx.DB, echo.Context) {
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewBotHandler(db)
 
 	e := echo.New()
@@ -173,7 +109,7 @@ func TestBotHandler_GetBots(t *testing.T) {
 		assert.Contains(t, response["error"], "location slug is required")
 	})
 
-	t.Run("non-existent location returns internal server error", func(t *testing.T) {
+	t.Run("non-existent location returns not found", func(t *testing.T) {
 		e := echo.New()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
@@ -188,7 +124,7 @@ func TestBotHandler_GetBots(t *testing.T) {
 
 		err := handler.GetBots(c)
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
 	})
 
 	t.Run("successfully get bots by location slug", func(t *testing.T) {

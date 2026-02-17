@@ -7,6 +7,7 @@ import (
 	"time"
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,8 +18,8 @@ import (
 
 const testJWTKey = "test-jwt-secret-key"
 
-func setupAuthTestData(db *repository.Database) error {
-	locationRepo := repository.NewLocationRepository(db.DB())
+func setupAuthTestData(db *sqlx.DB) error {
+	locationRepo := repository.NewLocationRepository(db)
 
 	_, err := locationRepo.FindBySlug("moonshine")
 	if err == nil {
@@ -41,7 +42,7 @@ func TestAuthService_SignUp(t *testing.T) {
 	err := setupAuthTestData(testDB)
 	require.NoError(t, err, "failed to setup test data")
 
-	db := testDB.DB()
+	db := testDB
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
@@ -150,7 +151,7 @@ func TestAuthService_SignIn(t *testing.T) {
 	err := setupAuthTestData(testDB)
 	require.NoError(t, err, "failed to setup test data")
 
-	db := testDB.DB()
+	db := testDB
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
@@ -250,7 +251,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 	err := setupAuthTestData(testDB)
 	require.NoError(t, err, "failed to setup test data")
 
-	db := testDB.DB()
+	db := testDB
 	userRepo := repository.NewUserRepository(db)
 	avatarRepo := repository.NewAvatarRepository(db)
 	locationRepo := repository.NewLocationRepository(db)

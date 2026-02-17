@@ -51,7 +51,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 
 	t.Run("successful path finding - direct connection", func(t *testing.T) {
 		db.Exec("TRUNCATE TABLE location_locations CASCADE")

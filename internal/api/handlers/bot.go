@@ -55,6 +55,9 @@ func (h *BotHandler) GetBots(c echo.Context) error {
 
 	bots, err := h.botService.GetBotsByLocationSlug(locationSlug)
 	if err != nil {
+		if errors.Is(err, repository.ErrLocationNotFound) {
+			return ErrNotFound(c, "location not found")
+		}
 		return ErrInternalServerError(c)
 	}
 

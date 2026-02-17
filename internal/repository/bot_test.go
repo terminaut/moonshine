@@ -17,7 +17,7 @@ func TestBotRepository_Create(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewBotRepository(testDB.DB())
+	repo := NewBotRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	bot := &domain.Bot{
@@ -40,7 +40,7 @@ func TestBotRepository_FindBySlug(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewBotRepository(testDB.DB())
+	repo := NewBotRepository(testDB)
 	ts := time.Now().UnixNano()
 	slug := fmt.Sprintf("find-bot-%d", ts)
 
@@ -67,7 +67,7 @@ func TestBotRepository_FindBySlug_NotFound(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewBotRepository(testDB.DB())
+	repo := NewBotRepository(testDB)
 
 	_, err := repo.FindBySlug("non-existent-slug")
 	assert.ErrorIs(t, err, ErrBotNotFound)
@@ -78,8 +78,8 @@ func TestBotRepository_FindBotsByLocationID(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewBotRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
+	repo := NewBotRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{
@@ -116,11 +116,11 @@ func TestBotRepository_FindBotsByLocationID(t *testing.T) {
 
 	linkID1 := uuid.New()
 	linkQuery := `INSERT INTO location_bots (id, location_id, bot_id) VALUES ($1, $2, $3)`
-	_, err = testDB.DB().Exec(linkQuery, linkID1, location.ID, bot1.ID)
+	_, err = testDB.Exec(linkQuery, linkID1, location.ID, bot1.ID)
 	require.NoError(t, err)
 
 	linkID2 := uuid.New()
-	_, err = testDB.DB().Exec(linkQuery, linkID2, location.ID, bot2.ID)
+	_, err = testDB.Exec(linkQuery, linkID2, location.ID, bot2.ID)
 	require.NoError(t, err)
 
 	bots, err := repo.FindBotsByLocationID(location.ID)
@@ -140,8 +140,8 @@ func TestBotRepository_FindBotsByLocationID_Empty(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	repo := NewBotRepository(testDB.DB())
-	locationRepo := NewLocationRepository(testDB.DB())
+	repo := NewBotRepository(testDB)
+	locationRepo := NewLocationRepository(testDB)
 	ts := time.Now().UnixNano()
 
 	location := &domain.Location{

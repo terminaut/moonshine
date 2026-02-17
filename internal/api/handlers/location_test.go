@@ -22,7 +22,7 @@ func setupLocationHandlerTest(t *testing.T) (*LocationHandler, *sqlx.DB, *domain
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewLocationHandler(db, nil)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),

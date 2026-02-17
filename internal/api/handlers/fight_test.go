@@ -26,7 +26,7 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewFightHandler(db)
 
 	locationID := uuid.New()

@@ -55,7 +55,7 @@ func TestBotService_GetBotsByLocationSlug(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 	service := NewBotService(
 		repository.NewLocationRepository(db),
 		repository.NewBotRepository(db),
@@ -109,7 +109,7 @@ func TestBotService_Attack(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 	service := NewBotService(
 		repository.NewLocationRepository(db),
 		repository.NewBotRepository(db),

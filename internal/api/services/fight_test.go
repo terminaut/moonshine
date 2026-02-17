@@ -89,7 +89,7 @@ func TestFightService_GetCurrentFight(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 	service := NewFightService(
 		db,
 		repository.NewFightRepository(db),
@@ -169,7 +169,7 @@ func TestFightService_Hit(t *testing.T) {
 		t.Skip("Test database not initialized")
 	}
 
-	db := testDB.DB()
+	db := testDB
 	service := NewFightService(
 		db,
 		repository.NewFightRepository(db),

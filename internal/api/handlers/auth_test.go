@@ -27,7 +27,7 @@ func setupAuthHandlerTest(t *testing.T) (*AuthHandler, *sqlx.DB, echo.Echo) {
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
-	db := testDB.DB()
+	db := testDB
 	handler := NewAuthHandler(db, "test-secret")
 	e := echo.New()
 	e.Validator = &customValidator{v: validator.New()}
