@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../components/PlayerHeader'
-import StatsDisplay from '../components/StatsDisplay'
+import EquipmentDisplay from '../components/EquipmentDisplay'
 import { useAuth } from '../context/AuthContext'
 import { avatarAPI, equipmentAPI, userAPI } from '../lib/api'
 import './EquipmentItems.css'
@@ -11,6 +11,7 @@ export default function Profile() {
   const { user: authUser, logout, refetchUser } = useAuth()
   const navigate = useNavigate()
   const [user, setUser] = useState(authUser)
+  const [avatarCacheBuster] = useState(() => Date.now())
   const [loading, setLoading] = useState(!authUser)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('inventory')
@@ -160,12 +161,15 @@ export default function Profile() {
       setEquipping(true)
       await equipmentAPI.takeOn(item.slug)
       
-      const [items, equipped] = await Promise.all([
+      const [items, equipped, updatedUser] = await Promise.all([
         userAPI.getInventory(),
-        userAPI.getEquippedItems()
+        userAPI.getEquippedItems(),
+        refetchUser(),
       ])
       
-      refetchUser()
+      if (updatedUser) {
+        setUser(updatedUser)
+      }
       setInventory(items)
       setEquippedItems(equipped)
     } catch (error) {
@@ -204,12 +208,15 @@ export default function Profile() {
       setEquipping(true)
       await equipmentAPI.takeOff(slotName)
       
-      const [items, equipped] = await Promise.all([
+      const [items, equipped, updatedUser] = await Promise.all([
         userAPI.getInventory(),
-        userAPI.getEquippedItems()
+        userAPI.getEquippedItems(),
+        refetchUser(),
       ])
       
-      refetchUser()
+      if (updatedUser) {
+        setUser(updatedUser)
+      }
       setInventory(items)
       setEquippedItems(equipped)
     } catch (error) {
@@ -273,58 +280,24 @@ export default function Profile() {
     }
   }
 
-  const normalizeImagePath = (img) => {
+  const normalizeImagePath = (img, bustAvatarCache = false) => {
     if (!img) return null
     let p = img
     if (p.startsWith('/')) p = p.slice(1)
     p = p.replace(/^frontend\/assets\/images\//, '')
     if (p.startsWith('assets/images/')) p = p.replace(/^assets\/images\//, '')
-    return `/assets/images/${p}`
-  }
-
-  const normalizeEquipmentImagePath = (img) => {
-    if (!img) return null
-    let p = img
-    if (p.startsWith('/')) p = p.slice(1)
-    p = p.replace(/^frontend\/assets\/images\//, '')
-    if (p.startsWith('assets/images/')) p = p.replace(/^assets\/images\//, '')
-    return `/assets/images/${p}`
-  }
-
-  const getEquipmentSlotImage = (slotName) => {
-    const equippedItem = equippedItems[slotName] || equippedItems[slotName.toLowerCase()]
-    
-    if (equippedItem && equippedItem.image) {
-      return normalizeEquipmentImagePath(equippedItem.image)
+    const normalizedPath = `/assets/images/${p}`
+    if (bustAvatarCache && p.startsWith('players/avatars/')) {
+      return `${normalizedPath}?v=${avatarCacheBuster}`
     }
-    
-    const placeholderName = slotName.startsWith('ring') ? 'ring' : slotName
-    return `/assets/images/equipment_items/grid/${placeholderName}.png`
+    return normalizedPath
   }
 
-  const hasEquippedItem = (slotName) => {
-    const equippedItem = equippedItems[slotName] || equippedItems[slotName.toLowerCase()]
-    return equippedItem && equippedItem.image
+  const handleSlotClick = (slotName) => {
+    if (!equipping) {
+      handleTakeOff(slotName)
+    }
   }
-
-  const renderEquipmentSlot = (slotName, alt) => {
-    const hasItem = hasEquippedItem(slotName)
-    const canTakeOff = hasItem && !equipping
-    
-    return (
-      <div 
-        className={`equipment-slot ${hasItem ? 'has-item' : ''}`}
-        onClick={() => canTakeOff && handleTakeOff(slotName)}
-        style={{ cursor: canTakeOff ? 'pointer' : 'default' }}
-        title={canTakeOff ? 'Нажмите чтобы снять' : ''}
-      >
-        <img src={getEquipmentSlotImage(slotName)} alt={alt} />
-      </div>
-    )
-  }
-
-  const avatarImage = user.avatar
-  const avatarSrc = normalizeImagePath(avatarImage) || getEquipmentSlotImage('head')
 
   return (
     <div className="profile-container">
@@ -369,64 +342,14 @@ export default function Profile() {
           </div>
         </div>
         <div className="profile-content">
-          <div className="profile-equipment-wrapper profile-layout">
-              <div className="equipment-grid">
-            <div className="equipment-column-left">
-              {renderEquipmentSlot('head', 'head')}
-              {renderEquipmentSlot('neck', 'neck')}
-              {renderEquipmentSlot('weapon', 'weapon')}
-              {renderEquipmentSlot('legs', 'legs')}
-              {renderEquipmentSlot('feet', 'feet')}
-            </div>
-
-            <div className="equipment-column-center">
-              <div className="equipment-avatar">
-                {avatarSrc ? (
-                  <img 
-                    src={avatarSrc} 
-                    alt={user.username}
-                    className="avatar-image"
-                    onError={(e) => {
-                      e.target.src = getEquipmentSlotImage('head')
-                    }}
-                  />
-                ) : (
-                  <img src={getEquipmentSlotImage('head')} alt="avatar placeholder" />
-                )}
-              </div>
-              <div className="equipment-rings">
-                {renderEquipmentSlot('ring1', 'ring1')}
-                {renderEquipmentSlot('ring2', 'ring2')}
-                {renderEquipmentSlot('ring3', 'ring3')}
-                {renderEquipmentSlot('ring4', 'ring4')}
-              </div>
-              
-              <StatsDisplay
-                attack={user.attack}
-                defense={user.defense}
-                hp={user.hp}
-                currentHp={user.currentHp ?? user.current_hp}
-                gold={user.gold}
-                showGold={true}
-              />
-            </div>
-
-            <div className="equipment-column-right">
-              <div className="equipment-row-top">
-                {renderEquipmentSlot('bag', 'bag')}
-                {renderEquipmentSlot('throw', 'throw')}
-              </div>
-              <div className="equipment-column-right-items">
-                {renderEquipmentSlot('arms', 'arms')}
-                {renderEquipmentSlot('hands', 'hands')}
-                {renderEquipmentSlot('shield', 'shield')}
-                {renderEquipmentSlot('chest', 'chest')}
-                {renderEquipmentSlot('belt', 'belt')}
-                {renderEquipmentSlot('box', 'box')}
-              </div>
-            </div>
+          <div className="profile-equipment-wrapper">
+            <EquipmentDisplay
+              user={user}
+              equippedItems={equippedItems}
+              onSlotClick={handleSlotClick}
+              avatarCacheBuster={avatarCacheBuster}
+            />
           </div>
-            </div>
 
         <div className="profile-sidebar">
           <div className="profile-tabs">
@@ -456,11 +379,13 @@ export default function Profile() {
                     inventory.map((item, index) => (
                       <div key={`${item.id}-${item.slug}-${index}`} className="equipment-item-card">
                         {item.image && (
-                          <img 
-                            src={normalizeEquipmentImagePath(item.image)} 
-                            alt={item.name}
-                            className="equipment-item-image"
-                          />
+                          <div className="equipment-item-image-frame">
+                            <img
+                              src={normalizeImagePath(item.image)}
+                              alt={item.name}
+                              className="equipment-item-image"
+                            />
+                          </div>
                         )}
                         <div className="equipment-item-info">
                           <h3>{item.name}</h3>
@@ -516,7 +441,7 @@ export default function Profile() {
                           onClick={() => handleSelectAvatar(avatar.id)}
                         >
                           <img 
-                            src={normalizeImagePath(avatar.image)} 
+                            src={normalizeImagePath(avatar.image, true)} 
                             alt={`Avatar ${avatar.id}`}
                             className="avatar-image-select"
                             onError={(e) => {

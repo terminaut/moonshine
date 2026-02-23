@@ -97,8 +97,6 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 		{"hands", user.HandsEquipmentItemID},
 		{"ring1", user.Ring1EquipmentItemID},
 		{"ring2", user.Ring2EquipmentItemID},
-		{"ring3", user.Ring3EquipmentItemID},
-		{"ring4", user.Ring4EquipmentItemID},
 	}
 	var ids []uuid.UUID
 	for _, s := range slots {

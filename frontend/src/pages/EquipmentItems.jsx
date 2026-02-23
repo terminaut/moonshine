@@ -10,7 +10,7 @@ export default function EquipmentItems() {
   const [searchParams] = useSearchParams()
   const category = searchParams.get('category')
   const artifact = searchParams.get('artifact') === 'true'
-  const { logout } = useAuth()
+  const { logout, refetchUser } = useAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -67,7 +67,7 @@ export default function EquipmentItems() {
     }
     try {
       await equipmentAPI.buy(itemSlug)
-      await userAPI.getCurrentUser()
+      await refetchUser()
       showNotification('Предмет успешно куплен!', 'success')
     } catch (error) {
       console.error('[EquipmentItems] Error buying item:', error)

@@ -11,8 +11,8 @@ import (
 )
 
 type Message struct {
-	Type string      `json:"type"`
-	Data interface{} `json:"data"`
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }
 
 type HPUpdateData struct {
@@ -90,6 +90,19 @@ func (h *Hub) SendHPUpdate(userID uuid.UUID, currentHp int, hp uint) error {
 		},
 	}
 	return h.SendToUser(userID, msg)
+}
+
+func (h *Hub) SendPing(userID uuid.UUID) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	conn, exists := h.connections[userID]
+	if !exists {
+		return nil
+	}
+
+	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	return conn.WriteMessage(websocket.PingMessage, nil)
 }
 
 func (h *Hub) IsConnected(userID uuid.UUID) bool {

@@ -14,9 +14,9 @@ var (
 )
 
 type dbInterface interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Select(dest interface{}, query string, args ...interface{}) error
-	QueryRow(query string, args ...interface{}) *sql.Row
+	Exec(query string, args ...any) (sql.Result, error)
+	Select(dest any, query string, args ...any) error
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 type InventoryRepository struct {

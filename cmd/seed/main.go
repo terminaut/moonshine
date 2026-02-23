@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -19,14 +20,18 @@ import (
 	"moonshine/internal/util"
 )
 
+//go:fix inline
 func strPtr(s string) *string {
-	return &s
+	return new(s)
 }
 
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env not loaded, relying on environment")
 	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 
 	cfg := config.Load()
 	db, err := repository.New(cfg)
@@ -66,9 +71,11 @@ func truncateTables(db *sqlx.DB) error {
 
 	tables := []string{
 		"inventory",
+		"location_bots",
 		"location_locations",
 		"equipment_items",
 		"equipment_categories",
+		"bots",
 		"locations",
 		"avatars",
 	}
@@ -212,8 +219,8 @@ func seedLocations(db *sqlx.DB) error {
 		Slug:     "moonshine",
 		Cell:     false,
 		Inactive: false,
-		Image:    strPtr("cities/moonshine/icon.jpg"),
-		ImageBg:  strPtr("cities/moonshine/bg.jpg"),
+		Image:    new("cities/moonshine/icon.jpg"),
+		ImageBg:  new("cities/moonshine/bg.jpg"),
 	}
 
 	if err := locationRepo.Create(moonshineLocation); err != nil {
@@ -237,8 +244,8 @@ func seedLocations(db *sqlx.DB) error {
 			Slug:     shop.slug,
 			Cell:     false,
 			Inactive: false,
-			Image:    strPtr(fmt.Sprintf("cities/moonshine/%s/icon.png", shop.slug)),
-			ImageBg:  strPtr(fmt.Sprintf("cities/moonshine/%s/bg.jpg", shop.slug)),
+			Image:    new(fmt.Sprintf("cities/moonshine/%s/icon.png", shop.slug)),
+			ImageBg:  new(fmt.Sprintf("cities/moonshine/%s/bg.jpg", shop.slug)),
 		}
 
 		if err := locationRepo.Create(shopLocation); err != nil {
@@ -266,8 +273,8 @@ func seedLocations(db *sqlx.DB) error {
 		Slug:     "wayward_pines",
 		Cell:     false,
 		Inactive: false,
-		Image:    strPtr("wayward_pines/icon.png"),
-		ImageBg:  strPtr("wayward_pines/bg.jpg"),
+		Image:    new("wayward_pines/icon.png"),
+		ImageBg:  new("wayward_pines/bg.jpg"),
 	}
 
 	if err := locationRepo.Create(waywardPinesLocation); err != nil {
@@ -360,7 +367,7 @@ func seedLocations(db *sqlx.DB) error {
 			Slug:     cellSlug,
 			Cell:     true,
 			Inactive: false,
-			Image:    strPtr(fmt.Sprintf("wayward_pines/cells/%s.png", cellSlug)),
+			Image:    new(fmt.Sprintf("wayward_pines/cells/%s.png", cellSlug)),
 			ImageBg:  nil,
 		}
 
@@ -484,7 +491,7 @@ func seedBots(db *sqlx.DB) error {
 			Defense: 10,
 			Hp:      20,
 			Level:   1,
-			Avatar:  "images/bots/rat.jpg",
+			Avatar:  "images/bots/rat.png",
 		}
 
 		if err := botRepo.Create(ratBot); err != nil {
@@ -494,7 +501,12 @@ func seedBots(db *sqlx.DB) error {
 		log.Printf("Created bot: Крыса (ID: %s)", ratBot.ID.String())
 		existingBotID = ratBot.ID
 	} else {
-		log.Println("Bot 'rat' already exists")
+		_, err = db.Exec("UPDATE bots SET name = $1, attack = $2, defense = $3, hp = $4, level = $5, avatar = $6 WHERE id = $7",
+			"Крыса", 2, 10, 20, 1, "images/bots/rat.png", existingBotID)
+		if err != nil {
+			return fmt.Errorf("failed to update rat bot: %w", err)
+		}
+		log.Println("Updated bot: Крыса")
 	}
 
 	cell29Location, err := locationRepo.FindBySlug("29cell")
@@ -517,6 +529,48 @@ func seedBots(db *sqlx.DB) error {
 		log.Printf("Linked bot 'Крыса' to location 29cell")
 	} else {
 		log.Println("Bot 'rat' already linked to 29cell")
+	}
+
+	spiderBot := &domain.Bot{
+		Name:    "Паук",
+		Slug:    "spider",
+		Attack:  6,
+		Defense: 35,
+		Hp:      120,
+		Level:   2,
+		Avatar:  "images/bots/spider.png",
+	}
+
+	var existingSpiderID uuid.UUID
+	err = db.QueryRow("SELECT id FROM bots WHERE slug = $1 AND deleted_at IS NULL", "spider").Scan(&existingSpiderID)
+	if err != nil {
+		if err := botRepo.Create(spiderBot); err != nil {
+			return fmt.Errorf("failed to create spider bot: %w", err)
+		}
+		log.Printf("Created bot: Паук (ID: %s)", spiderBot.ID.String())
+		existingSpiderID = spiderBot.ID
+	} else {
+		_, err = db.Exec("UPDATE bots SET name = $1, attack = $2, defense = $3, hp = $4, level = $5, avatar = $6 WHERE id = $7",
+			spiderBot.Name, spiderBot.Attack, spiderBot.Defense, spiderBot.Hp, spiderBot.Level, spiderBot.Avatar, existingSpiderID)
+		if err != nil {
+			return fmt.Errorf("failed to update spider bot: %w", err)
+		}
+		log.Println("Updated bot: Паук")
+	}
+
+	err = db.QueryRow(
+		"SELECT id FROM location_bots WHERE location_id = $1 AND bot_id = $2 AND deleted_at IS NULL",
+		cell29Location.ID, existingSpiderID,
+	).Scan(&existingLinkID)
+	if err != nil {
+		linkID := uuid.New()
+		linkQuery := `INSERT INTO location_bots (id, location_id, bot_id) VALUES ($1, $2, $3)`
+		if _, err := db.Exec(linkQuery, linkID, cell29Location.ID, existingSpiderID); err != nil {
+			return fmt.Errorf("failed to link spider bot to 29cell: %w", err)
+		}
+		log.Printf("Linked bot 'Паук' to location 29cell")
+	} else {
+		log.Println("Bot 'spider' already linked to 29cell")
 	}
 
 	log.Println("Bots seeding completed!")
@@ -952,7 +1006,7 @@ func generateSlugFromImage(imagePath string) string {
 
 	chars := "abcdefghijklmnopqrstuvwxyz0123456789"
 	result := make([]byte, 6)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		result[i] = chars[combinedHash%uint32(len(chars))]
 		combinedHash /= uint32(len(chars))
 		if combinedHash == 0 {

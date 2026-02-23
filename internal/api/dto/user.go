@@ -34,8 +34,6 @@ type User struct {
 	HandsEquipmentItemID  *string   `json:"handsEquipmentItemId,omitempty"`
 	Ring1EquipmentItemID  *string   `json:"ring1EquipmentItemId,omitempty"`
 	Ring2EquipmentItemID  *string   `json:"ring2EquipmentItemId,omitempty"`
-	Ring3EquipmentItemID  *string   `json:"ring3EquipmentItemId,omitempty"`
-	Ring4EquipmentItemID  *string   `json:"ring4EquipmentItemId,omitempty"`
 	LocationSlug          *string   `json:"locationSlug,omitempty"`
 	Location              *Location `json:"location,omitempty"`
 	InFight               bool      `json:"inFight"`
@@ -92,8 +90,6 @@ func UserFromDomain(user *domain.User, location *domain.Location, bots []*domain
 		{user.HandsEquipmentItemID, &result.HandsEquipmentItemID},
 		{user.Ring1EquipmentItemID, &result.Ring1EquipmentItemID},
 		{user.Ring2EquipmentItemID, &result.Ring2EquipmentItemID},
-		{user.Ring3EquipmentItemID, &result.Ring3EquipmentItemID},
-		{user.Ring4EquipmentItemID, &result.Ring4EquipmentItemID},
 	}
 
 	for _, field := range equipmentItemFields {

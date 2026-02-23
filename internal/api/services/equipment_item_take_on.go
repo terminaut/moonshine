@@ -119,10 +119,6 @@ func (s *EquipmentItemTakeOnService) TakeOnEquipmentItem(ctx context.Context, us
 			fieldName = "ring1_equipment_item_id"
 		case user.Ring2EquipmentItemID == nil:
 			fieldName = "ring2_equipment_item_id"
-		case user.Ring3EquipmentItemID == nil:
-			fieldName = "ring3_equipment_item_id"
-		case user.Ring4EquipmentItemID == nil:
-			fieldName = "ring4_equipment_item_id"
 		default:
 			fieldName = "ring1_equipment_item_id"
 			oldItemID = user.Ring1EquipmentItemID

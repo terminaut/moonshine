@@ -208,7 +208,7 @@ export default function Fight() {
 
   const getBotImageSrc = () => {
     if (!bot.avatar) {
-      return '/assets/images/bots/rat.jpg'
+      return '/assets/images/bots/rat2.jpg'
     }
     
     let path = bot.avatar.trim()

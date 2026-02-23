@@ -172,14 +172,6 @@
   position: relative;
 }
 
-.profile-equipment-wrapper.profile-layout {
-  flex-direction: row;
-}
-
-.profile-equipment-wrapper.profile-layout .equipment-display-wrapper {
-  flex-direction: row;
-}
-
 .profile-sidebar {
   display: flex;
   flex-direction: column;
@@ -259,14 +251,22 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.profile-inventory-content .equipment-item-image {
+.profile-inventory-content .equipment-item-image-frame {
   width: 96px;
   height: 96px;
-  object-fit: contain;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-inventory-content .equipment-item-image {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
   display: block;
 }
 
@@ -492,100 +492,4 @@
 .stat-separator {
   margin: 0 4px;
   color: #8b6f47;
-}
-
-.equipment-grid {
-  display: flex;
-  gap: 0;
-  align-items: flex-start;
-  width: fit-content;
-}
-
-.equipment-column-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.equipment-column-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.equipment-column-right {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.equipment-row-top {
-  display: flex;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.equipment-column-right-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.equipment-slot {
-  display: inline-flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  position: relative;
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-  transition: all 0.2s ease;
-}
-
-.equipment-slot.has-item {
-  cursor: pointer;
-}
-
-.equipment-slot.has-item:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
-.equipment-slot img {
-  width: auto;
-  height: auto;
-  display: block;
-  margin: 0;
-  padding: 0;
-  image-rendering: pixelated;
-}
-
-.equipment-avatar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  margin: 0;
-  padding: 0;
-  line-height: 0;
-}
-
-.equipment-avatar img {
-  width: auto;
-  height: auto;
-  display: block;
-  margin: 0;
-  padding: 0;
-}
-
-.equipment-rings {
-  display: flex;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  line-height: 0;
 }

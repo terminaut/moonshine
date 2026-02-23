@@ -52,8 +52,6 @@ func getFieldNameFromSlot(slotName string) (string, error) {
 		"hands":  "hands_equipment_item_id",
 		"ring1":  "ring1_equipment_item_id",
 		"ring2":  "ring2_equipment_item_id",
-		"ring3":  "ring3_equipment_item_id",
-		"ring4":  "ring4_equipment_item_id",
 	}
 
 	if fieldName, ok := fieldMap[slotName]; ok {

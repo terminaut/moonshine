@@ -1,7 +1,7 @@
 import './EquipmentDisplay.css'
 import StatsDisplay from './StatsDisplay'
 
-export default function EquipmentDisplay({ user, equippedItems, readonly = false }) {
+export default function EquipmentDisplay({ user, equippedItems, onSlotClick, readonly = false, avatarCacheBuster = '' }) {
   const normalizeImagePath = (img) => {
     if (!img) return null
     let p = img.trim()
@@ -19,7 +19,11 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
         p = `${p}.jpg`
       }
     }
-    return `/assets/images/${p}`
+    const normalizedPath = `/assets/images/${p}`
+    if (avatarCacheBuster && p.startsWith('players/avatars/')) {
+      return `${normalizedPath}?v=${avatarCacheBuster}`
+    }
+    return normalizedPath
   }
 
   const getEquipmentSlotImage = (slotName) => {
@@ -36,18 +40,29 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
     return equippedItem && equippedItem.image
   }
 
+  const getGridSlotImage = (slotName) => `/assets/images/equipment_items/grid/${slotName}.png`
+
   const renderEquipmentSlot = (slotName, alt) => {
     const hasItem = hasEquippedItem(slotName)
-    
+    const clickable = hasItem && !readonly && onSlotClick
+
     return (
-      <div 
+      <div
         className={`equipment-slot ${hasItem ? 'has-item' : ''} ${readonly ? 'readonly' : ''}`}
-        title={hasItem && !readonly ? 'Нажмите чтобы снять' : ''}
+        onClick={() => clickable && onSlotClick(slotName)}
+        style={{ cursor: clickable ? 'pointer' : 'default' }}
+        title={clickable ? 'Нажмите чтобы снять' : ''}
       >
         <img src={getEquipmentSlotImage(slotName)} alt={alt} />
       </div>
     )
   }
+
+  const renderStaticSlot = (slotName, alt, extraClass = '') => (
+    <div className={`equipment-slot readonly ${extraClass}`.trim()}>
+      <img src={getGridSlotImage(slotName)} alt={alt} />
+    </div>
+  )
 
   const avatarImage = user?.avatar
   const avatarSrc = avatarImage ? normalizeImagePath(avatarImage) : getEquipmentSlotImage('head')
@@ -66,10 +81,9 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
         <div className="equipment-column-center">
           <div className="equipment-avatar">
             {avatarSrc ? (
-              <img 
-                src={avatarSrc} 
+              <img
+                src={avatarSrc}
                 alt={user?.username || user?.name || 'Avatar'}
-                className="avatar-image"
                 onError={(e) => {
                   e.target.src = getEquipmentSlotImage('head')
                 }}
@@ -78,13 +92,7 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
               <img src={getEquipmentSlotImage('head')} alt="avatar placeholder" />
             )}
           </div>
-          <div className="equipment-rings">
-            {renderEquipmentSlot('ring1', 'ring1')}
-            {renderEquipmentSlot('ring2', 'ring2')}
-            {renderEquipmentSlot('ring3', 'ring3')}
-            {renderEquipmentSlot('ring4', 'ring4')}
-          </div>
-          
+
           <StatsDisplay
             attack={user?.attack}
             defense={user?.defense}
@@ -97,8 +105,9 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
 
         <div className="equipment-column-right">
           <div className="equipment-row-top">
-            {renderEquipmentSlot('bag', 'bag')}
-            {renderEquipmentSlot('throw', 'throw')}
+            {renderStaticSlot('bag', 'bag', 'equipment-bag-offset-right')}
+            {renderStaticSlot('bag', 'bag', 'equipment-bag-offset-right')}
+            {renderStaticSlot('bag', 'bag')}
           </div>
           <div className="equipment-column-right-items">
             {renderEquipmentSlot('arms', 'arms')}
@@ -106,7 +115,10 @@ export default function EquipmentDisplay({ user, equippedItems, readonly = false
             {renderEquipmentSlot('shield', 'shield')}
             {renderEquipmentSlot('chest', 'chest')}
             {renderEquipmentSlot('belt', 'belt')}
-            {renderEquipmentSlot('box', 'box')}
+            <div className="equipment-double-slot-row">
+              {renderEquipmentSlot('ring1', 'ring1')}
+              {renderEquipmentSlot('ring2', 'ring2')}
+            </div>
           </div>
         </div>
       </div>

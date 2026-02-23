@@ -28,7 +28,9 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 				if cfg.IsProduction() {
 					c.Response().Header().Set("Cache-Control", "public, max-age=604800")
 				} else {
-					c.Response().Header().Set("Cache-Control", "public, max-age=3600")
+					c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+					c.Response().Header().Set("Pragma", "no-cache")
+					c.Response().Header().Set("Expires", "0")
 				}
 			}
 			return next(c)

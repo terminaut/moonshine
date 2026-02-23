@@ -109,7 +109,7 @@ func (r *AvatarRepository) FindByIDs(ids []uuid.UUID) (map[uuid.UUID]*domain.Ava
 		SELECT id, created_at, deleted_at, image, private
 		FROM avatars
 		WHERE id IN (?) AND deleted_at IS NULL
-	`, ids)
+	`, UUIDsToStrings(ids))
 	if err != nil {
 		return nil, err
 	}

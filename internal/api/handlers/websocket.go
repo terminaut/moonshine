@@ -56,7 +56,7 @@ func (h *WebSocketHandler) HandleConnection(c echo.Context) error {
 	fmt.Printf("[WS] Connection upgraded for user %s\n", userID)
 	h.hub.Register(userID, conn)
 
-	go h.handleConnection(userID, conn)
+	h.handleConnection(userID, conn)
 
 	return nil
 }
@@ -93,8 +93,7 @@ func (h *WebSocketHandler) handleConnection(userID uuid.UUID, conn *websocket.Co
 		case <-done:
 			return
 		case <-ticker.C:
-			conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := h.hub.SendPing(userID); err != nil {
 				return
 			}
 		}
@@ -102,7 +101,7 @@ func (h *WebSocketHandler) handleConnection(userID uuid.UUID, conn *websocket.Co
 }
 
 func (h *WebSocketHandler) validateToken(tokenString string) (uuid.UUID, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}

@@ -70,7 +70,7 @@ func TestAuthService_SignUp(t *testing.T) {
 		assert.Equal(t, uint(100), user.Gold)
 
 		// Verify token is valid and contains correct user ID
-		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (interface{}, error) {
+		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (any, error) {
 			return []byte(testJWTKey), nil
 		})
 		require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestAuthService_SignIn(t *testing.T) {
 		assert.Equal(t, user.Username, result.Username)
 
 		// Verify token is valid and contains correct user ID
-		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (interface{}, error) {
+		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (any, error) {
 			return []byte(testJWTKey), nil
 		})
 		require.NoError(t, err)
@@ -270,14 +270,14 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should parse with correct key
-		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (interface{}, error) {
+		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (any, error) {
 			return []byte("my-secret-key"), nil
 		})
 		require.NoError(t, err)
 		assert.True(t, parsed.Valid)
 
 		// Should fail with wrong key
-		_, err = jwtv5.Parse(token, func(t *jwtv5.Token) (interface{}, error) {
+		_, err = jwtv5.Parse(token, func(t *jwtv5.Token) (any, error) {
 			return []byte("wrong-key"), nil
 		})
 		assert.Error(t, err)
@@ -296,7 +296,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 		_, token, err := service.SignUp(context.Background(), input)
 		require.NoError(t, err)
 
-		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (interface{}, error) {
+		parsed, err := jwtv5.Parse(token, func(t *jwtv5.Token) (any, error) {
 			return []byte(testJWTKey), nil
 		})
 		require.NoError(t, err)
@@ -324,7 +324,7 @@ func TestAuthService_JWTTokenGeneration(t *testing.T) {
 		_, token, err := service.SignUp(context.Background(), input)
 		require.NoError(t, err)
 
-		parsed, err := jwtv5.Parse(token, func(tok *jwtv5.Token) (interface{}, error) {
+		parsed, err := jwtv5.Parse(token, func(tok *jwtv5.Token) (any, error) {
 			assert.Equal(t, jwtv5.SigningMethodHS256, tok.Method)
 			return []byte(testJWTKey), nil
 		})

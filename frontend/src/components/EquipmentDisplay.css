@@ -1,9 +1,109 @@
 .equipment-display-wrapper {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 20px;
+}
+
+.equipment-grid {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  width: fit-content;
+}
+
+.equipment-column-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.equipment-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  width: fit-content;
+}
+
+.equipment-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.equipment-row-top {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.equipment-column-right-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.equipment-double-slot-row {
+  display: flex;
+  gap: 0;
+}
+
+.equipment-slot {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  transition: all 0.2s ease;
+}
+
+.equipment-slot.has-item {
+  cursor: pointer;
+}
+
+.equipment-slot.has-item:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.equipment-slot img {
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 0;
+  padding: 0;
+  image-rendering: pixelated;
+}
+
+.equipment-avatar {
+  display: block;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+}
+
+.equipment-avatar img {
+  width: auto;
+  height: auto;
+  max-height: 335px;
+  max-width: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  image-rendering: pixelated;
 }
 
 .equipment-slot.readonly {
   cursor: default !important;
+}
+
+.equipment-bag-offset-right {
+  margin-left: 1px;
 }

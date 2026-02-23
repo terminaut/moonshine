@@ -318,7 +318,7 @@ func TestBotHandler_Attack(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, rec.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err = json.Unmarshal(rec.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.NotNil(t, response["message"])

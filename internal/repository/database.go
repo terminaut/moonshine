@@ -36,6 +36,8 @@ func New(cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("register otelsql driver: %w", err)
 	}
 
+	sqlx.BindDriver(driverName, sqlx.DOLLAR)
+
 	db, err := sqlx.Connect(driverName, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)

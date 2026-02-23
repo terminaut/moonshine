@@ -35,8 +35,6 @@ type User struct {
 	HandsEquipmentItemID  *uuid.UUID `db:"hands_equipment_item_id"`
 	Ring1EquipmentItemID  *uuid.UUID `db:"ring1_equipment_item_id"`
 	Ring2EquipmentItemID  *uuid.UUID `db:"ring2_equipment_item_id"`
-	Ring3EquipmentItemID  *uuid.UUID `db:"ring3_equipment_item_id"`
-	Ring4EquipmentItemID  *uuid.UUID `db:"ring4_equipment_item_id"`
 	Avatar                string     `db:"avatar"`
 }
 

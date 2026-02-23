@@ -21,7 +21,7 @@ import (
 
 type customValidator struct{ v *validator.Validate }
 
-func (cv *customValidator) Validate(i interface{}) error { return cv.v.Struct(i) }
+func (cv *customValidator) Validate(i any) error { return cv.v.Struct(i) }
 
 func setupAuthHandlerTest(t *testing.T) (*AuthHandler, *sqlx.DB, echo.Echo) {
 	if testDB == nil {

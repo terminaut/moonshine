@@ -25,8 +25,9 @@ const LevelMatrix = {
   20: 65000,
 }
 
-export default function PlayerHeader({ fullWidth = false }) {
-  const { user } = useAuth()
+export default function PlayerHeader({ fullWidth = false, user: userProp = null }) {
+  const { user: authUser } = useAuth()
+  const user = userProp || authUser
   const currentHp = user?.currentHp ?? user?.current_hp ?? 0
   const maxHp = user?.hp || 20
   const userLevel = user?.level || 1

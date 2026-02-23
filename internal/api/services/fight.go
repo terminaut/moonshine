@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -51,12 +52,7 @@ var ErrInvalidBodyPart = errors.New("invalid body part")
 
 func isValidBodyPart(part string) bool {
 	bodyPart := domain.BodyPart(part)
-	for _, validPart := range domain.BodyParts {
-		if validPart == bodyPart {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(domain.BodyParts, bodyPart)
 }
 
 func (s *FightService) GetCurrentFight(ctx context.Context, userID uuid.UUID) (*GetCurrentFightResult, error) {
@@ -146,8 +142,8 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 	}
 
 	if finalPlayerHp == 0 || finalBotHp == 0 {
-		fight.DroppedGold = calculateDroppedGold(bot.Level)
-		fight.Exp = calculateExp(finalBotHp, user.Level, bot.Level)
+		fight.DroppedGold = calculateDroppedGold(bot.Level, finalPlayerHp)
+		fight.Exp = calculateExp(user.Level, bot.Level, finalPlayerHp)
 
 		lvl := calculateLvl(user.Level, user.Exp, fight.Exp)
 
@@ -216,7 +212,11 @@ func calculateFinalHp(currentHp int, damage uint) int {
 	return res
 }
 
-func calculateDroppedGold(botLvl uint) uint {
+func calculateDroppedGold(botLvl uint, finalPlayerHp int) uint {
+	if finalPlayerHp == 0 {
+		return 0
+	}
+
 	limitDroppedGold := botLvl * 5
 
 	if rand.Intn(3) == 1 {
@@ -226,8 +226,8 @@ func calculateDroppedGold(botLvl uint) uint {
 	return 0
 }
 
-func calculateExp(botFinalHp int, playerLvl, botLvl uint) uint {
-	if botFinalHp > 0 || playerLvl >= 20 {
+func calculateExp(playerLvl, botLvl uint, finalPlayerHp int) uint {
+	if finalPlayerHp == 0 || playerLvl >= 20 {
 		return 0
 	}
 
