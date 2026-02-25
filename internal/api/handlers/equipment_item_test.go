@@ -61,7 +61,7 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 	require.NoError(t, itemRepo.Create(item))
 
 	inventoryRepo := repository.NewInventoryRepository(db)
-	require.NoError(t, inventoryRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: item.ID}))
+	require.NoError(t, inventoryRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: &item.ID}))
 
 	e := echo.New()
 	return handler, db, user, item, *e
@@ -216,7 +216,7 @@ func TestEquipmentItemHandler_TakeOffEquipmentItem(t *testing.T) {
 
 	itemRepo := repository.NewEquipmentItemRepository(db)
 	invRepo := repository.NewInventoryRepository(db)
-	invRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: item.ID})
+	invRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: &item.ID})
 	takeOnSvc := services.NewEquipmentItemTakeOnService(db, itemRepo, invRepo, repository.NewUserRepository(db))
 	err := takeOnSvc.TakeOnEquipmentItem(context.Background(), user.ID, item.ID)
 	require.NoError(t, err)

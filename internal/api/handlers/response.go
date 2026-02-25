@@ -21,6 +21,17 @@ func checkNotInFight(c echo.Context, userRepo *repository.UserRepository, userID
 	return nil
 }
 
+func checkInFight(c echo.Context, userRepo *repository.UserRepository, userID uuid.UUID) error {
+	inFight, err := userRepo.InFight(userID)
+	if err != nil {
+		return ErrInternalServerError(c)
+	}
+	if !inFight {
+		return ErrBadRequest(c, "user not in fight")
+	}
+	return nil
+}
+
 func ErrUnauthorized(c echo.Context) error {
 	return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 }

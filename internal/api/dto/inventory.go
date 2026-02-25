@@ -1,0 +1,6 @@
+package dto
+
+type InventoryResponse struct {
+	EquipmentItems []*EquipmentItem `json:"equipmentItems"`
+	Potions        []*Potion        `json:"potions"`
+}

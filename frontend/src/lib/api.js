@@ -193,6 +193,90 @@ export const equipmentAPI = {
   },
 }
 
+export const potionsAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/potions`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        throw new Error('Unauthorized')
+      }
+      throw new Error(data?.error || 'Failed to fetch potions')
+    }
+    return data || []
+  },
+
+  buy: async (potionSlug) => {
+    const response = await fetch(`${API_BASE_URL}/potions/${potionSlug}/buy`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to buy potion')
+    }
+    return data
+  },
+
+  sell: async (potionSlug) => {
+    const response = await fetch(`${API_BASE_URL}/potions/${potionSlug}/sell`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to sell potion')
+    }
+    return data
+  },
+
+  takeOn: async (potionSlug) => {
+    const response = await fetch(`${API_BASE_URL}/potions/${potionSlug}/take_on`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to equip potion')
+    }
+    return data
+  },
+
+  takeOff: async (slotName) => {
+    const response = await fetch(`${API_BASE_URL}/potions/take_off/${slotName}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to remove potion')
+    }
+    return data
+  },
+
+  use: async (slot) => {
+    const response = await fetch(`${API_BASE_URL}/potions/use/${slot}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to use potion')
+    }
+    return data
+  },
+}
+
 export const avatarAPI = {
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/avatars`, {

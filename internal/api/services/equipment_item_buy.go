@@ -60,7 +60,7 @@ func (s *EquipmentItemBuyService) BuyEquipmentItem(ctx context.Context, userID u
 
 	inventory := &domain.Inventory{
 		UserID:          userID,
-		EquipmentItemID: item.ID,
+		EquipmentItemID: &item.ID,
 	}
 
 	inventoryRepo := repository.NewInventoryRepository(tx)

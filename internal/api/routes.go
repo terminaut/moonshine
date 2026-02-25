@@ -117,6 +117,14 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	apiGroup.POST("/equipment_items/:slug/sell", equipmentItemHandler.SellEquipmentItem)
 	apiGroup.POST("/equipment_items/:slug/take_on", equipmentItemHandler.TakeOnEquipmentItem)
 
+	potionHandler := handlers.NewPotionHandler(db, rdb)
+	apiGroup.GET("/potions", potionHandler.GetPotions)
+	apiGroup.POST("/potions/take_off/:slot", potionHandler.TakeOffPotion)
+	apiGroup.POST("/potions/use/:slot", potionHandler.UsePotion)
+	apiGroup.POST("/potions/:slug/buy", potionHandler.BuyPotion)
+	apiGroup.POST("/potions/:slug/sell", potionHandler.SellPotion)
+	apiGroup.POST("/potions/:slug/take_on", potionHandler.TakeOnPotion)
+
 	botHandler := handlers.NewBotHandler(db)
 	apiGroup.GET("/bots/:location_slug", botHandler.GetBots)
 	apiGroup.POST("/bots/:slug/attack", botHandler.Attack)

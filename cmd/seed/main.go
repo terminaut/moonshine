@@ -61,6 +61,9 @@ func main() {
 	if err := seedBots(db.DB()); err != nil {
 		log.Printf("Failed to seed bots: %v", err)
 	}
+	if err := seedPotions(db.DB()); err != nil {
+		log.Printf("Failed to seed potions: %v", err)
+	}
 	seedUsers(db.DB())
 
 	log.Println("Seed process completed!")
@@ -71,6 +74,7 @@ func truncateTables(db *sqlx.DB) error {
 
 	tables := []string{
 		"inventory",
+		"potions",
 		"location_bots",
 		"location_locations",
 		"equipment_items",
@@ -574,6 +578,42 @@ func seedBots(db *sqlx.DB) error {
 	}
 
 	log.Println("Bots seeding completed!")
+	return nil
+}
+
+func seedPotions(db *sqlx.DB) error {
+	log.Println("Seeding potions...")
+
+	potions := []struct {
+		name  string
+		slug  string
+		stat  string
+		value uint
+		price uint
+		image string
+	}{
+		{"Малое зелье здоровья", "small_hp_potion", "CURRENT_HP", 100, 10, "potions/current_hp/small.png"},
+		{"Среднее зелье здоровья", "medium_hp_potion", "CURRENT_HP", 200, 20, "potions/current_hp/big.png"},
+		{"Большое зелье здоровья", "large_hp_potion", "CURRENT_HP", 300, 30, "potions/current_hp/big.png"},
+	}
+
+	for _, p := range potions {
+		var existingID uuid.UUID
+		err := db.QueryRow("SELECT id FROM potions WHERE slug = $1 AND deleted_at IS NULL", p.slug).Scan(&existingID)
+		if err == nil {
+			log.Printf("Potion %s already exists, skipping", p.name)
+			continue
+		}
+
+		potionID := uuid.New()
+		query := `INSERT INTO potions (id, name, slug, stat, value, price, image) VALUES ($1, $2, $3, $4::potion_stat_type, $5, $6, $7)`
+		if _, err := db.Exec(query, potionID, p.name, p.slug, p.stat, p.value, p.price, p.image); err != nil {
+			return fmt.Errorf("failed to create potion %s: %w", p.name, err)
+		}
+		log.Printf("Created potion: %s (stat: %s, value: %d, price: %d)", p.name, p.stat, p.value, p.price)
+	}
+
+	log.Println("Potions seeding completed!")
 	return nil
 }
 

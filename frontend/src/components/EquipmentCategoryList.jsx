@@ -12,6 +12,7 @@ const categories = [
   { slug: 'belt', filename: '8-belt' },
   { slug: 'ring', filename: '9-ring' },
   { slug: 'shield', filename: '10-shield' },
+  { slug: 'potions', filename: '11-potions' },
 ]
 
 export default function EquipmentCategoryList({ currentCategory, artifact = false }) {

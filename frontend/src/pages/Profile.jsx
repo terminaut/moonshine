@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../components/PlayerHeader'
 import EquipmentDisplay from '../components/EquipmentDisplay'
 import { useAuth } from '../context/AuthContext'
-import { avatarAPI, equipmentAPI, userAPI } from '../lib/api'
+import { avatarAPI, equipmentAPI, potionsAPI, userAPI } from '../lib/api'
 import './EquipmentItems.css'
 import './Profile.css'
 
@@ -15,7 +15,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(!authUser)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('inventory')
-  const [inventory, setInventory] = useState([])
+  const [inventory, setInventory] = useState({ equipmentItems: [], potions: [] })
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [equippedItems, setEquippedItems] = useState({})
   const [avatars, setAvatars] = useState([])
@@ -101,13 +101,16 @@ export default function Profile() {
     if (activeTab === 'inventory') {
       setInventoryLoading(true)
       userAPI.getInventory()
-        .then((items) => {
-          setInventory(items)
+        .then((data) => {
+          setInventory({
+            equipmentItems: data.equipmentItems || [],
+            potions: data.potions || [],
+          })
           setInventoryLoading(false)
         })
         .catch((err) => {
           console.error('[Profile] Error loading inventory:', err)
-          setInventory([])
+          setInventory({ equipmentItems: [], potions: [] })
           setInventoryLoading(false)
         })
     } else if (activeTab === 'settings') {
@@ -160,17 +163,17 @@ export default function Profile() {
       updateInProgressRef.current = true
       setEquipping(true)
       await equipmentAPI.takeOn(item.slug)
-      
-      const [items, equipped, updatedUser] = await Promise.all([
+
+      const [data, equipped, updatedUser] = await Promise.all([
         userAPI.getInventory(),
         userAPI.getEquippedItems(),
         refetchUser(),
       ])
-      
+
       if (updatedUser) {
         setUser(updatedUser)
       }
-      setInventory(items)
+      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
       setEquippedItems(equipped)
     } catch (error) {
       console.error('[Profile] Error equipping item:', error)
@@ -206,18 +209,23 @@ export default function Profile() {
     try {
       updateInProgressRef.current = true
       setEquipping(true)
-      await equipmentAPI.takeOff(slotName)
-      
-      const [items, equipped, updatedUser] = await Promise.all([
+      const isPotionSlot = slotName.startsWith('potion')
+      if (isPotionSlot) {
+        await potionsAPI.takeOff(slotName)
+      } else {
+        await equipmentAPI.takeOff(slotName)
+      }
+
+      const [data, equipped, updatedUser] = await Promise.all([
         userAPI.getInventory(),
         userAPI.getEquippedItems(),
         refetchUser(),
       ])
-      
+
       if (updatedUser) {
         setUser(updatedUser)
       }
-      setInventory(items)
+      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
       setEquippedItems(equipped)
     } catch (error) {
       console.error('[Profile] Error removing item:', error)
@@ -262,9 +270,9 @@ export default function Profile() {
 
     try {
       await equipmentAPI.sell(item.slug)
-      const items = await userAPI.getInventory()
+      const data = await userAPI.getInventory()
       await refetchUser()
-      setInventory(items)
+      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
       showNotification(`Продано за ${item.price} золота`, 'success')
     } catch (error) {
       console.error('[Profile] Error selling item:', error)
@@ -273,6 +281,70 @@ export default function Profile() {
         errorMessage = 'У вас нет этого предмета'
       } else if (error.message.includes('not found')) {
         errorMessage = 'Предмет не найден'
+      } else {
+        errorMessage = error.message
+      }
+      showNotification(errorMessage, 'error')
+    }
+  }
+
+  const getPotionSellPrice = (price) => Math.floor(Number(price || 0) * 0.9)
+
+  const handlePotionTakeOn = async (potion) => {
+    if (!potion.slug) {
+      showNotification('Slug эликсира не определен', 'error')
+      return
+    }
+
+    if (updateInProgressRef.current) {
+      return
+    }
+
+    try {
+      updateInProgressRef.current = true
+      setEquipping(true)
+      await potionsAPI.takeOn(potion.slug)
+
+      const [data, equipped, updatedUser] = await Promise.all([
+        userAPI.getInventory(),
+        userAPI.getEquippedItems(),
+        refetchUser(),
+      ])
+
+      if (updatedUser) {
+        setUser(updatedUser)
+      }
+      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setEquippedItems(equipped)
+      showNotification('Эликсир надет!', 'success')
+    } catch (error) {
+      console.error('[Profile] Error equipping potion:', error)
+      showNotification(error.message || 'Ошибка при надевании эликсира', 'error')
+    } finally {
+      updateInProgressRef.current = false
+      setEquipping(false)
+    }
+  }
+
+  const handlePotionSell = async (potion) => {
+    if (!potion.slug) {
+      showNotification('Slug эликсира не определен', 'error')
+      return
+    }
+
+    try {
+      await potionsAPI.sell(potion.slug)
+      const data = await userAPI.getInventory()
+      await refetchUser()
+      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      showNotification(`Эликсир продан за ${getPotionSellPrice(potion.price)} золота`, 'success')
+    } catch (error) {
+      console.error('[Profile] Error selling potion:', error)
+      let errorMessage = 'Неизвестная ошибка'
+      if (error.message.includes('not owned')) {
+        errorMessage = 'У вас нет этого эликсира'
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Эликсир не найден'
       } else {
         errorMessage = error.message
       }
@@ -373,49 +445,89 @@ export default function Profile() {
                 <div>Загрузка инвентаря...</div>
               ) : (
                 <div className="equipment-items-list">
-                  {inventory.length === 0 ? (
+                  {inventory.equipmentItems.length === 0 && inventory.potions.length === 0 ? (
                     <p>Инвентарь пуст</p>
                   ) : (
-                    inventory.map((item, index) => (
-                      <div key={`${item.id}-${item.slug}-${index}`} className="equipment-item-card">
-                        {item.image && (
-                          <div className="equipment-item-image-frame">
-                            <img
-                              src={normalizeImagePath(item.image)}
-                              alt={item.name}
-                              className="equipment-item-image"
-                            />
-                          </div>
-                        )}
-                        <div className="equipment-item-info">
-                          <h3>{item.name}</h3>
-                          {item.equipment_type && (
-                            <div className="equipment-item-type">Тип: {item.equipment_type}</div>
+                    <>
+                      {inventory.equipmentItems.map((item, index) => (
+                        <div key={`eq-${item.id}-${item.slug}-${index}`} className="equipment-item-card">
+                          {item.image && (
+                            <div className="equipment-item-image-frame">
+                              <img
+                                src={normalizeImagePath(item.image)}
+                                alt={item.name}
+                                className="equipment-item-image"
+                              />
+                            </div>
                           )}
-                          <div className="equipment-item-stats">
-                            <div>Уровень: {item.requiredLevel}</div>
-                            {item.attack > 0 && <div>Атака: {item.attack}</div>}
-                            {item.defense > 0 && <div>Защита: {item.defense}</div>}
-                            {item.hp > 0 && <div>HP: {item.hp}</div>}
-                          </div>
-                          <div className="equipment-item-buttons">
-                            <button 
-                              className="equipment-item-equip-button"
-                              onClick={() => handleTakeOn(item)}
-                              disabled={user.level < item.requiredLevel || equipping}
-                            >
-                              {user.level < item.requiredLevel ? `Нужен ${item.requiredLevel} ур.` : (equipping ? '...' : 'Надеть')}
-                            </button>
-                            <button 
-                              className="equipment-item-sell-button"
-                              onClick={() => handleSell(item)}
-                            >
-                              Продать ({item.price})
-                            </button>
+                          <div className="equipment-item-info">
+                            <h3>{item.name}</h3>
+                            {item.equipment_type && (
+                              <div className="equipment-item-type">Тип: {item.equipment_type}</div>
+                            )}
+                            <div className="equipment-item-stats">
+                              <div>Уровень: {item.requiredLevel}</div>
+                              {item.attack > 0 && <div>Атака: {item.attack}</div>}
+                              {item.defense > 0 && <div>Защита: {item.defense}</div>}
+                              {item.hp > 0 && <div>HP: {item.hp}</div>}
+                            </div>
+                            <div className="equipment-item-buttons">
+                              <button
+                                className="equipment-item-equip-button"
+                                onClick={() => handleTakeOn(item)}
+                                disabled={user.level < item.requiredLevel || equipping}
+                              >
+                                {user.level < item.requiredLevel ? `Нужен ${item.requiredLevel} ур.` : (equipping ? '...' : 'Надеть')}
+                              </button>
+                              <button
+                                className="equipment-item-sell-button"
+                                onClick={() => handleSell(item)}
+                              >
+                                Продать ({item.price})
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                      {inventory.potions.map((potion, index) => (
+                        <div key={`pot-${potion.id}-${potion.slug}-${index}`} className="equipment-item-card">
+                          {potion.image && (
+                            <div className="equipment-item-image-frame">
+                              <img
+                                src={normalizeImagePath(potion.image)}
+                                alt={potion.name}
+                                className="equipment-item-image"
+                              />
+                            </div>
+                          )}
+                          <div className="equipment-item-info">
+                            <h3>{potion.name}</h3>
+                            <div className="equipment-item-stats">
+                              {potion.stat === 'CURRENT_HP' && <div>HP: +{potion.value}</div>}
+                              {potion.stat === 'ATTACK' && <div>Атака: +{potion.value}</div>}
+                              {potion.stat === 'DEFENSE' && <div>Защита: +{potion.value}</div>}
+                              <div>Цена: {potion.price} зол.</div>
+                              <div>Продажа: {getPotionSellPrice(potion.price)} зол.</div>
+                            </div>
+                            <div className="equipment-item-buttons">
+                              <button
+                                className="equipment-item-equip-button"
+                                onClick={() => handlePotionTakeOn(potion)}
+                                disabled={equipping}
+                              >
+                                {equipping ? '...' : 'Надеть'}
+                              </button>
+                              <button
+                                className="equipment-item-sell-button"
+                                onClick={() => handlePotionSell(potion)}
+                              >
+                                Продать ({getPotionSellPrice(potion.price)})
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
                   )}
                 </div>
               )}

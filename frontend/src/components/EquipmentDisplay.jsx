@@ -26,18 +26,34 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
     return normalizedPath
   }
 
+  const potionStatToType = (stat) => {
+    switch (stat) {
+      case 'CURRENT_HP': return 'current_hp'
+      case 'ATTACK': return 'attack'
+      case 'DEFENSE': return 'defense'
+      default: return 'current_hp'
+    }
+  }
+
   const getEquipmentSlotImage = (slotName) => {
     const equippedItem = equippedItems?.[slotName] || equippedItems?.[slotName.toLowerCase()]
-    if (equippedItem && equippedItem.image) {
-      return normalizeImagePath(equippedItem.image)
+    if (equippedItem) {
+      if (slotName.startsWith('potion') && equippedItem.stat) {
+        return `/assets/images/potions/${potionStatToType(equippedItem.stat)}/small.png`
+      }
+      if (equippedItem.image) {
+        return normalizeImagePath(equippedItem.image)
+      }
     }
-    const placeholderName = slotName.startsWith('ring') ? 'ring' : slotName
+    const placeholderName = slotName.startsWith('ring') ? 'ring' : slotName.startsWith('potion') ? 'potion' : slotName
     return `/assets/images/equipment_items/grid/${placeholderName}.png`
   }
 
   const hasEquippedItem = (slotName) => {
     const equippedItem = equippedItems?.[slotName] || equippedItems?.[slotName.toLowerCase()]
-    return equippedItem && equippedItem.image
+    if (!equippedItem) return false
+    if (slotName.startsWith('potion')) return !!equippedItem.stat
+    return !!equippedItem.image
   }
 
   const getGridSlotImage = (slotName) => `/assets/images/equipment_items/grid/${slotName}.png`
@@ -58,11 +74,22 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
     )
   }
 
-  const renderStaticSlot = (slotName, alt, extraClass = '') => (
-    <div className={`equipment-slot readonly ${extraClass}`.trim()}>
-      <img src={getGridSlotImage(slotName)} alt={alt} />
-    </div>
-  )
+  const renderPotionTopSlot = (slotName, alt, extraClass = '') => {
+    const hasItem = hasEquippedItem(slotName)
+    const clickable = hasItem && !readonly && onSlotClick
+    const slotImage = hasItem ? getEquipmentSlotImage(slotName) : getGridSlotImage('bag')
+
+    return (
+      <div
+        className={`equipment-slot ${hasItem ? 'has-item' : ''} ${readonly ? 'readonly' : ''} ${extraClass}`.trim()}
+        onClick={() => clickable && onSlotClick(slotName)}
+        style={{ cursor: clickable ? 'pointer' : 'default' }}
+        title={clickable ? 'Нажмите чтобы снять' : ''}
+      >
+        <img src={slotImage} alt={alt} />
+      </div>
+    )
+  }
 
   const avatarImage = user?.avatar
   const avatarSrc = avatarImage ? normalizeImagePath(avatarImage) : getEquipmentSlotImage('head')
@@ -105,9 +132,9 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
 
         <div className="equipment-column-right">
           <div className="equipment-row-top">
-            {renderStaticSlot('bag', 'bag', 'equipment-bag-offset-right')}
-            {renderStaticSlot('bag', 'bag', 'equipment-bag-offset-right')}
-            {renderStaticSlot('bag', 'bag')}
+            {renderPotionTopSlot('potion1', 'potion1', 'equipment-bag-offset-right')}
+            {renderPotionTopSlot('potion2', 'potion2', 'equipment-bag-offset-right')}
+            {renderPotionTopSlot('potion3', 'potion3')}
           </div>
           <div className="equipment-column-right-items">
             {renderEquipmentSlot('arms', 'arms')}

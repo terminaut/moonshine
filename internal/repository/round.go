@@ -47,6 +47,12 @@ func (r *RoundRepository) FindByFightID(fightID uuid.UUID) ([]*domain.Round, err
 	return rounds, nil
 }
 
+func (r *RoundRepository) UpdatePlayerHp(roundID uuid.UUID, playerHp int) error {
+	query := `UPDATE rounds SET player_hp = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, playerHp, roundID)
+	return err
+}
+
 func (r *RoundRepository) FinishRound(id uuid.UUID, botAttackPoint, botDefensePoint, playerAttackPoint, playerDefensePoint string,
 	playerDmg, botDmg uint, finalPlayerHp, finalBotHp int) error {
 	if finalPlayerHp < 0 {

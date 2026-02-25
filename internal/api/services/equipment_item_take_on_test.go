@@ -73,7 +73,7 @@ func setupTestData(db *sqlx.DB) (*domain.User, *domain.EquipmentItem, uuid.UUID,
 
 	inventory := &domain.Inventory{
 		UserID:          user.ID,
-		EquipmentItemID: item.ID,
+		EquipmentItemID: &item.ID,
 	}
 	inventoryRepo := repository.NewInventoryRepository(db)
 	err = inventoryRepo.Create(inventory)
@@ -159,7 +159,7 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 
 		inventory := &domain.Inventory{
 			UserID:          user.ID,
-			EquipmentItemID: highLevelItem.ID,
+			EquipmentItemID: &highLevelItem.ID,
 		}
 		err = inventoryRepo.Create(inventory)
 		require.NoError(t, err)
@@ -184,7 +184,7 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 
 		inventory2 := &domain.Inventory{
 			UserID:          user.ID,
-			EquipmentItemID: newItem2.ID,
+			EquipmentItemID: &newItem2.ID,
 		}
 		err = inventoryRepo.Create(inventory2)
 		require.NoError(t, err)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { userAPI } from '../lib/api'
+import { userAPI, potionsAPI } from '../lib/api'
 import { fightAPI } from '../lib/fightAPI'
 import EquipmentDisplay from '../components/EquipmentDisplay'
 import GoldIcon from '../components/GoldIcon'
@@ -27,6 +27,7 @@ export default function Fight() {
   const [selectedAttack, setSelectedAttack] = useState('HEAD')
   const [selectedDefense, setSelectedDefense] = useState('HEAD')
   const [hitting, setHitting] = useState(false)
+  const [usingPotion, setUsingPotion] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -139,6 +140,36 @@ export default function Fight() {
       navigate('/locations/wayward_pines')
     } else {
       navigate(`/locations/${locationSlug}`)
+    }
+  }
+
+  const potionStatToType = (stat) => {
+    switch (stat) {
+      case 'CURRENT_HP': return 'current_hp'
+      case 'ATTACK': return 'attack'
+      case 'DEFENSE': return 'defense'
+      default: return 'current_hp'
+    }
+  }
+
+  const handleUsePotion = async (slot) => {
+    if (usingPotion || fight?.status === 'FINISHED') return
+    setUsingPotion(slot)
+    try {
+      await potionsAPI.use(slot)
+      const [fightData, equipped] = await Promise.all([
+        fightAPI.getCurrentFight(),
+        userAPI.getEquippedItems(),
+      ])
+      setUser(fightData.user)
+      setBot(fightData.bot)
+      setFight(fightData.fight)
+      setEquippedItems(equipped)
+    } catch (err) {
+      console.error('[Fight] Error using potion:', err)
+      setError(err.message || 'Ошибка при использовании эликсира')
+    } finally {
+      setUsingPotion(null)
     }
   }
 
@@ -290,6 +321,32 @@ export default function Fight() {
           </div>
         </div>
         
+        <div className="fight-potions-bar">
+          {['potion1', 'potion2', 'potion3'].map((slot) => {
+            const potion = equippedItems?.[slot]
+            const hasPotion = potion && potion.stat
+            return (
+              <button
+                key={slot}
+                className={`fight-potion-slot ${hasPotion ? 'has-potion' : ''}`}
+                disabled={!hasPotion || fight?.status === 'FINISHED' || usingPotion === slot}
+                onClick={() => handleUsePotion(slot)}
+                title={hasPotion ? `Использовать: ${potion.name}` : 'Пусто'}
+              >
+                <img
+                  src={hasPotion
+                    ? `/assets/images/potions/${potionStatToType(potion.stat)}/big.png`
+                    : '/assets/images/equipment_items/grid/bag.png'
+                  }
+                  alt={slot}
+                  className="fight-potion-icon"
+                />
+                {usingPotion === slot && <span className="fight-potion-loading">...</span>}
+              </button>
+            )
+          })}
+        </div>
+
         <div className="fight-content">
           <div className="fight-player-section">
             <div className="fight-player-info">

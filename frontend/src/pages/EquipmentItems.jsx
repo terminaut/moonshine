@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { equipmentAPI, userAPI } from '../lib/api'
+import { equipmentAPI, potionsAPI } from '../lib/api'
 import PlayerHeader from '../components/PlayerHeader'
 import EquipmentCategoryList from '../components/EquipmentCategoryList'
 import { useAuth } from '../context/AuthContext'
@@ -12,6 +12,7 @@ export default function EquipmentItems() {
   const artifact = searchParams.get('artifact') === 'true'
   const { logout, refetchUser } = useAuth()
   const navigate = useNavigate()
+  const isPotion = category === 'potions'
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -38,7 +39,10 @@ export default function EquipmentItems() {
     }
 
     setLoading(true)
-    equipmentAPI.getByCategory(category, artifact)
+    const fetchPromise = isPotion
+      ? potionsAPI.getAll()
+      : equipmentAPI.getByCategory(category, artifact)
+    fetchPromise
       .then((data) => {
         setItems(data)
         setLoading(false)
@@ -48,7 +52,7 @@ export default function EquipmentItems() {
         setError('Ошибка загрузки предметов')
         setLoading(false)
       })
-  }, [category, artifact])
+  }, [category, artifact, isPotion])
 
   const handleBack = () => {
     navigate(artifact ? '/locations/shop_of_artifacts' : '/locations/weapon_shop')
@@ -66,7 +70,11 @@ export default function EquipmentItems() {
       return
     }
     try {
-      await equipmentAPI.buy(itemSlug)
+      if (isPotion) {
+        await potionsAPI.buy(itemSlug)
+      } else {
+        await equipmentAPI.buy(itemSlug)
+      }
       await refetchUser()
       showNotification('Предмет успешно куплен!', 'success')
     } catch (error) {
@@ -93,6 +101,10 @@ export default function EquipmentItems() {
     if (p.startsWith('/')) p = p.slice(1)
     p = p.replace(/^frontend\/assets\/images\//, '')
     if (p.startsWith('assets/images/')) p = p.replace(/^assets\/images\//, '')
+    const filename = p.split('/').pop() || ''
+    if (filename && !filename.includes('.')) {
+      p = `${p}.png`
+    }
     return `/assets/images/${p}`
   }
 
@@ -182,10 +194,20 @@ export default function EquipmentItems() {
                       <div className="equipment-item-type">Тип: {item.equipment_type}</div>
                     )}
                     <div className="equipment-item-stats">
-                      <div>Уровень: {item.requiredLevel}</div>
-                      {item.attack > 0 && <div>Атака: {item.attack}</div>}
-                      {item.defense > 0 && <div>Защита: {item.defense}</div>}
-                      {item.hp > 0 && <div>HP: {item.hp}</div>}
+                      {isPotion ? (
+                        <>
+                          {item.stat === 'CURRENT_HP' && <div>HP: +{item.value}</div>}
+                          {item.stat === 'ATTACK' && <div>Атака: +{item.value}</div>}
+                          {item.stat === 'DEFENSE' && <div>Защита: +{item.value}</div>}
+                        </>
+                      ) : (
+                        <>
+                          <div>Уровень: {item.requiredLevel}</div>
+                          {item.attack > 0 && <div>Атака: {item.attack}</div>}
+                          {item.defense > 0 && <div>Защита: {item.defense}</div>}
+                          {item.hp > 0 && <div>HP: {item.hp}</div>}
+                        </>
+                      )}
                       <div>Цена: {item.price} зол.</div>
                     </div>
                     <button 

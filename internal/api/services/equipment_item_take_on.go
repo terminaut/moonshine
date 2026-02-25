@@ -151,7 +151,7 @@ func (s *EquipmentItemTakeOnService) TakeOnEquipmentItem(ctx context.Context, us
 	if oldItemID != nil {
 		inventory := &domain.Inventory{
 			UserID:          userID,
-			EquipmentItemID: *oldItemID,
+			EquipmentItemID: oldItemID,
 		}
 		inventoryRepo := repository.NewInventoryRepository(tx)
 		err = inventoryRepo.Create(inventory)

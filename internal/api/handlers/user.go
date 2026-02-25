@@ -20,6 +20,7 @@ type UserHandler struct {
 	inventoryService  *services.InventoryService
 	userRepo          *repository.UserRepository
 	equipmentItemRepo *repository.EquipmentItemRepository
+	potionRepo        *repository.PotionRepository
 }
 
 func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
@@ -36,6 +37,7 @@ func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
 		inventoryService:  inventoryService,
 		userRepo:          userRepo,
 		equipmentItemRepo: repository.NewEquipmentItemRepository(db),
+		potionRepo:        repository.NewPotionRepository(db),
 	}
 }
 
@@ -67,7 +69,15 @@ func (h *UserHandler) GetUserInventory(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
-	return c.JSON(http.StatusOK, dto.EquipmentItemsFromDomain(items))
+	potions, err := h.inventoryService.GetUserInventoryPotions(c.Request().Context(), userID)
+	if err != nil {
+		return ErrInternalServerError(c)
+	}
+
+	return c.JSON(http.StatusOK, dto.InventoryResponse{
+		EquipmentItems: dto.EquipmentItemsFromDomain(items),
+		Potions:        dto.PotionsFromDomain(potions),
+	})
 }
 
 func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
@@ -98,34 +108,69 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 		{"ring1", user.Ring1EquipmentItemID},
 		{"ring2", user.Ring2EquipmentItemID},
 	}
-	var ids []uuid.UUID
+
+	result := map[string]any{}
+
+	var equipmentIDs []uuid.UUID
 	for _, s := range slots {
 		if s.id != nil {
-			ids = append(ids, *s.id)
+			equipmentIDs = append(equipmentIDs, *s.id)
 		}
 	}
-	if len(ids) == 0 {
-		return c.JSON(http.StatusOK, map[string]*dto.EquipmentItem{})
-	}
 
-	list, err := h.equipmentItemRepo.FindByIDs(ids)
-	if err != nil {
-		return ErrInternalServerError(c)
-	}
-	idToItem := make(map[uuid.UUID]*dto.EquipmentItem)
-	for _, it := range list {
-		idToItem[it.ID] = dto.EquipmentItemFromDomain(it)
-	}
-
-	equipmentItems := map[string]*dto.EquipmentItem{}
-	for _, s := range slots {
-		if s.id != nil {
-			if d, ok := idToItem[*s.id]; ok {
-				equipmentItems[s.name] = d
+	if len(equipmentIDs) > 0 {
+		list, err := h.equipmentItemRepo.FindByIDs(equipmentIDs)
+		if err != nil {
+			return ErrInternalServerError(c)
+		}
+		idToItem := make(map[uuid.UUID]*dto.EquipmentItem)
+		for _, it := range list {
+			idToItem[it.ID] = dto.EquipmentItemFromDomain(it)
+		}
+		for _, s := range slots {
+			if s.id != nil {
+				if d, ok := idToItem[*s.id]; ok {
+					result[s.name] = d
+				}
 			}
 		}
 	}
-	return c.JSON(http.StatusOK, equipmentItems)
+
+	potionSlots := []struct {
+		name string
+		id   *uuid.UUID
+	}{
+		{"potion1", user.Potion1ID},
+		{"potion2", user.Potion2ID},
+		{"potion3", user.Potion3ID},
+	}
+
+	var potionIDs []uuid.UUID
+	for _, s := range potionSlots {
+		if s.id != nil {
+			potionIDs = append(potionIDs, *s.id)
+		}
+	}
+
+	if len(potionIDs) > 0 {
+		potions, err := h.potionRepo.FindByIDs(potionIDs)
+		if err != nil {
+			return ErrInternalServerError(c)
+		}
+		idToPotion := make(map[uuid.UUID]*dto.Potion)
+		for _, p := range potions {
+			idToPotion[p.ID] = dto.PotionFromDomain(p)
+		}
+		for _, s := range potionSlots {
+			if s.id != nil {
+				if d, ok := idToPotion[*s.id]; ok {
+					result[s.name] = d
+				}
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, result)
 }
 
 func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {

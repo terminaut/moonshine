@@ -32,6 +32,59 @@
   gap: 20px;
 }
 
+.fight-potions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.fight-potion-slot {
+  background: linear-gradient(145deg, #f5e6d3, #e8d5bc);
+  border: 2px solid #8b6f47;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.fight-potion-slot:hover:not(:disabled) {
+  background: linear-gradient(145deg, #e8d5bc, #d4c4a8);
+  border-color: #6b5537;
+}
+
+.fight-potion-slot:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.fight-potion-slot.has-potion {
+  opacity: 1;
+  border-color: #6b8f3c;
+}
+
+.fight-potion-slot.has-potion:disabled {
+  opacity: 0.6;
+}
+
+.fight-potion-icon {
+  display: block;
+  width: 100px;
+  height: 100px;
+  image-rendering: pixelated;
+}
+
+.fight-potion-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: bold;
+  color: #5a4730;
+}
+
 .fight-header-actions {
   display: flex;
   align-items: center;

@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -50,13 +51,14 @@ func (r *UserRepository) Create(user *domain.User) error {
 
 func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
 	query := `
-		SELECT users.id, users.created_at, users.updated_at, users.deleted_at, users.username, users.email, users.password, users.name, 
+		SELECT users.id, users.created_at, users.updated_at, users.deleted_at, users.username, users.email, users.password, users.name,
 			users.avatar_id, users.location_id, users.attack, users.defense, users.current_hp, users.exp,
 			users.free_stats, users.gold, users.hp, users.level,
 			users.chest_equipment_item_id, users.belt_equipment_item_id, users.head_equipment_item_id,
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
+			users.potion1_id, users.potion2_id, users.potion3_id,
 			COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id
@@ -77,13 +79,14 @@ func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
 
 func (r *UserRepository) FindByUsername(username string) (*domain.User, error) {
 	query := `
-		SELECT users.id, users.created_at, users.updated_at, users.deleted_at, users.username, users.email, users.password, users.name, 
+		SELECT users.id, users.created_at, users.updated_at, users.deleted_at, users.username, users.email, users.password, users.name,
 			users.avatar_id, users.location_id, users.attack, users.defense, users.current_hp, users.exp,
 			users.free_stats, users.gold, users.hp, users.level,
 			users.chest_equipment_item_id, users.belt_equipment_item_id, users.head_equipment_item_id,
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
+			users.potion1_id, users.potion2_id, users.potion3_id,
 			COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id
@@ -103,14 +106,27 @@ func (r *UserRepository) FindByUsername(username string) (*domain.User, error) {
 }
 
 func (r *UserRepository) UpdateGold(userID uuid.UUID, newGold uint) error {
+	return r.UpdateGoldWithExt(r.db, userID, newGold)
+}
+
+func (r *UserRepository) UpdateGoldWithExt(h ExtHandle, userID uuid.UUID, newGold uint) error {
 	query := `UPDATE users SET gold = $1 WHERE id = $2 AND deleted_at IS NULL`
-	_, err := r.db.Exec(query, newGold, userID)
+	_, err := h.Exec(query, newGold, userID)
 	return err
 }
 
 func (r *UserRepository) UpdateAvatarID(userID uuid.UUID, avatarID *uuid.UUID) error {
 	query := `UPDATE users SET avatar_id = $1 WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.db.Exec(query, avatarID, userID)
+	return err
+}
+
+func (r *UserRepository) ClearPotionSlot(h ExtHandle, userID uuid.UUID, slotColumn string, newCurrentHp int) error {
+	query := fmt.Sprintf(
+		`UPDATE users SET current_hp = $1, %s = NULL WHERE id = $2 AND deleted_at IS NULL`,
+		slotColumn,
+	)
+	_, err := h.Exec(query, newCurrentHp, userID)
 	return err
 }
 
