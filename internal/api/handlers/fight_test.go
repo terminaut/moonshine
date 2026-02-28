@@ -18,6 +18,7 @@ import (
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
@@ -27,7 +28,13 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewFightHandler(db)
+	fightRepo := repository.NewFightRepository(db)
+	botRepo := repository.NewBotRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	roundRepo := repository.NewRoundRepository(db)
+	fightService := services.NewFightService(db, fightRepo, botRepo, userRepo, roundRepo)
+	locationRepo := repository.NewLocationRepository(db)
+	handler := NewFightHandler(fightService, locationRepo)
 
 	locationID := uuid.New()
 	location := &domain.Location{
@@ -36,7 +43,6 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 		Slug:  fmt.Sprintf("test-location-%d", time.Now().UnixNano()),
 		Cell:  false,
 	}
-	locationRepo := repository.NewLocationRepository(db)
 	require.NoError(t, locationRepo.Create(location))
 
 	user := &domain.User{
@@ -50,7 +56,6 @@ func setupFightHandlerTest(t *testing.T) (*FightHandler, *sqlx.DB, *domain.User)
 		CurrentHp:  100,
 		Level:      1,
 	}
-	userRepo := repository.NewUserRepository(db)
 	require.NoError(t, userRepo.Create(user))
 
 	return handler, db, user

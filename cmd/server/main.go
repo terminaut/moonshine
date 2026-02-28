@@ -69,6 +69,11 @@ func main() {
 		defer tracerShutdown()
 	}
 
+	container, err := api.NewContainer(db.DB(), rdb, cfg)
+	if err != nil {
+		log.Fatalf("failed to create container: %v", err)
+	}
+
 	docs.SwaggerInfo.Host = cfg.HTTPAddr
 	if os.Getenv("ENV") == "production" {
 		docs.SwaggerInfo.Schemes = []string{"https"}
@@ -88,7 +93,7 @@ func main() {
 		registerPprof(e)
 	}
 
-	api.SetupRoutes(e, db.DB(), rdb, cfg)
+	api.SetupRoutes(e, container)
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
@@ -98,7 +103,13 @@ func main() {
 		}
 	}()
 
-	hpWorker := worker.NewHpWorker(db.DB(), rdb, 3*time.Second)
+	hpWorker := worker.NewHpWorker(
+		container.HealthRegenerationService,
+		container.UserRepo,
+		container.Hub,
+		container.UserCache,
+		3*time.Second,
+	)
 	go hpWorker.StartWorker(ctx)
 
 	<-ctx.Done()

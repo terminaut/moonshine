@@ -18,6 +18,7 @@ import (
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 	"moonshine/internal/testutil"
@@ -45,7 +46,14 @@ func setupBotHandlerTest(t *testing.T) (*BotHandler, *sqlx.DB, echo.Context) {
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewBotHandler(db)
+	locationRepo := repository.NewLocationRepository(db)
+	botRepo := repository.NewBotRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	fightRepo := repository.NewFightRepository(db)
+	roundRepo := repository.NewRoundRepository(db)
+	botService := services.NewBotService(locationRepo, botRepo, userRepo, fightRepo, roundRepo)
+	fightChecker := NewFightChecker(userRepo)
+	handler := NewBotHandler(botService, fightChecker)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)

@@ -40,7 +40,7 @@ func (s *PotionBuyService) BuyPotion(ctx context.Context, userID uuid.UUID, poti
 
 	potion, err := s.potionRepo.FindBySlug(potionSlug)
 	if err != nil {
-		return ErrPotionNotFound
+		return repository.ErrPotionNotFound
 	}
 
 	user, err := s.userRepo.FindByID(userID)

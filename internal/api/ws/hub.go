@@ -25,16 +25,10 @@ type Hub struct {
 	mu          sync.RWMutex
 }
 
-var globalHub *Hub
-var once sync.Once
-
-func GetHub() *Hub {
-	once.Do(func() {
-		globalHub = &Hub{
-			connections: make(map[uuid.UUID]*websocket.Conn),
-		}
-	})
-	return globalHub
+func NewHub() *Hub {
+	return &Hub{
+		connections: make(map[uuid.UUID]*websocket.Conn),
+	}
 }
 
 func (h *Hub) Register(userID uuid.UUID, conn *websocket.Conn) {

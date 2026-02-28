@@ -6,34 +6,31 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/handlers"
 	jwtMiddleware "moonshine/internal/api/middleware"
-	"moonshine/internal/config"
 )
 
-func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Config) {
+func SetupRoutes(e *echo.Echo, c *Container) {
 	e.GET("/health", healthCheck)
 
-	wsHandler := handlers.NewWebSocketHandler(cfg)
+	wsHandler := handlers.NewWebSocketHandler(c.Hub, c.Config)
 	e.GET("/api/ws", wsHandler.HandleConnection)
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if strings.HasPrefix(c.Request().URL.Path, "/assets") {
-				if cfg.IsProduction() {
-					c.Response().Header().Set("Cache-Control", "public, max-age=604800")
+		return func(ctx echo.Context) error {
+			if strings.HasPrefix(ctx.Request().URL.Path, "/assets") {
+				if c.Config.IsProduction() {
+					ctx.Response().Header().Set("Cache-Control", "public, max-age=604800")
 				} else {
-					c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
-					c.Response().Header().Set("Pragma", "no-cache")
-					c.Response().Header().Set("Expires", "0")
+					ctx.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+					ctx.Response().Header().Set("Pragma", "no-cache")
+					ctx.Response().Header().Set("Expires", "0")
 				}
 			}
-			return next(c)
+			return next(ctx)
 		}
 	})
 
@@ -79,16 +76,18 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 
 	e.Validator = NewValidator()
 
-	authHandler := handlers.NewAuthHandler(db, cfg.JWTKey)
+	fightChecker := handlers.NewFightChecker(c.UserRepo)
+
+	authHandler := handlers.NewAuthHandler(c.AuthService, c.LocationRepo, c.UserRepo)
 	authGroup := e.Group("/api/auth")
 	authGroup.POST("/signup", authHandler.SignUp)
 	authGroup.POST("/signin", authHandler.SignIn)
 
 	jwtConfig := echojwt.Config{
-		SigningKey: []byte(cfg.JWTKey),
+		SigningKey: []byte(c.Config.JWTKey),
 		ContextKey: "user",
-		ErrorHandler: func(c echo.Context, err error) error {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		ErrorHandler: func(ctx echo.Context, err error) error {
+			return ctx.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		},
 	}
 
@@ -96,28 +95,46 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	apiGroup.Use(echojwt.WithConfig(jwtConfig))
 	apiGroup.Use(jwtMiddleware.ExtractUserIDFromJWT())
 
-	userHandler := handlers.NewUserHandler(db, rdb)
+	userHandler := handlers.NewUserHandler(c.UserService, c.InventoryService, c.UserRepo, c.EquipmentItemRepo, c.PotionRepo, fightChecker)
 	apiGroup.GET("/user/me", userHandler.GetCurrentUser)
 	apiGroup.PUT("/user/me", userHandler.UpdateCurrentUser)
 	apiGroup.GET("/users/me/inventory", userHandler.GetUserInventory)
 	apiGroup.GET("/users/me/equipped", userHandler.GetUserEquippedItems)
 
-	avatarHandler := handlers.NewAvatarHandler(db)
+	avatarHandler := handlers.NewAvatarHandler(c.AvatarService, fightChecker)
 	apiGroup.GET("/avatars", avatarHandler.GetAllAvatars)
 
-	locationHandler := handlers.NewLocationHandler(db, rdb)
+	locationHandler := handlers.NewLocationHandler(c.LocationService, c.LocationRepo, c.UserRepo, fightChecker)
 	apiGroup.POST("/locations/:slug/move", locationHandler.MoveToLocation)
 	apiGroup.POST("/locations/:slug/cells/:cell_slug/move", locationHandler.MoveToCell)
 	apiGroup.GET("/locations/:slug/cells", locationHandler.GetLocationCells)
 
-	equipmentItemHandler := handlers.NewEquipmentItemHandler(db, rdb)
+	equipmentItemHandler := handlers.NewEquipmentItemHandler(
+		c.EquipmentItemService,
+		c.EquipmentItemBuyService,
+		c.EquipmentItemSellService,
+		c.EquipmentItemTakeOnService,
+		c.EquipmentItemTakeOffService,
+		c.EquipmentItemRepo,
+		c.UserCache,
+		fightChecker,
+	)
 	apiGroup.GET("/equipment_items", equipmentItemHandler.GetEquipmentItems)
 	apiGroup.POST("/equipment_items/take_off/:slot", equipmentItemHandler.TakeOffEquipmentItem)
 	apiGroup.POST("/equipment_items/:slug/buy", equipmentItemHandler.BuyEquipmentItem)
 	apiGroup.POST("/equipment_items/:slug/sell", equipmentItemHandler.SellEquipmentItem)
 	apiGroup.POST("/equipment_items/:slug/take_on", equipmentItemHandler.TakeOnEquipmentItem)
 
-	potionHandler := handlers.NewPotionHandler(db, rdb)
+	potionHandler := handlers.NewPotionHandler(
+		c.PotionBuyService,
+		c.PotionSellService,
+		c.PotionTakeOnService,
+		c.PotionTakeOffService,
+		c.PotionUseService,
+		c.PotionRepo,
+		c.UserCache,
+		fightChecker,
+	)
 	apiGroup.GET("/potions", potionHandler.GetPotions)
 	apiGroup.POST("/potions/take_off/:slot", potionHandler.TakeOffPotion)
 	apiGroup.POST("/potions/use/:slot", potionHandler.UsePotion)
@@ -125,11 +142,11 @@ func SetupRoutes(e *echo.Echo, db *sqlx.DB, rdb *redis.Client, cfg *config.Confi
 	apiGroup.POST("/potions/:slug/sell", potionHandler.SellPotion)
 	apiGroup.POST("/potions/:slug/take_on", potionHandler.TakeOnPotion)
 
-	botHandler := handlers.NewBotHandler(db)
+	botHandler := handlers.NewBotHandler(c.BotService, fightChecker)
 	apiGroup.GET("/bots/:location_slug", botHandler.GetBots)
 	apiGroup.POST("/bots/:slug/attack", botHandler.Attack)
 
-	fightHandler := handlers.NewFightHandler(db)
+	fightHandler := handlers.NewFightHandler(c.FightService, c.LocationRepo)
 	apiGroup.GET("/fights/current", fightHandler.GetCurrentFight)
 	apiGroup.POST("/fights/current/hit", fightHandler.Hit)
 }

@@ -14,6 +14,7 @@ import (
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
@@ -23,7 +24,11 @@ func setupAvatarHandlerTest(t *testing.T) (*AvatarHandler, *domain.User, echo.Ec
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewAvatarHandler(db)
+	avatarRepo := repository.NewAvatarRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	avatarService := services.NewAvatarService(avatarRepo)
+	fightChecker := NewFightChecker(userRepo)
+	handler := NewAvatarHandler(avatarService, fightChecker)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
@@ -40,7 +45,6 @@ func setupAvatarHandlerTest(t *testing.T) (*AvatarHandler, *domain.User, echo.Ec
 		LocationID: loc.ID,
 		Attack:     1, Defense: 1, Hp: 20, CurrentHp: 20, Level: 1, Gold: 0, Exp: 0, FreeStats: 0,
 	}
-	userRepo := repository.NewUserRepository(db)
 	require.NoError(t, userRepo.Create(user))
 	e := echo.New()
 	return handler, user, *e

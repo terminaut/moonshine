@@ -5,9 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
@@ -21,23 +19,24 @@ type UserHandler struct {
 	userRepo          *repository.UserRepository
 	equipmentItemRepo *repository.EquipmentItemRepository
 	potionRepo        *repository.PotionRepository
+	fightChecker      *FightChecker
 }
 
-func NewUserHandler(db *sqlx.DB, rdb *redis.Client) *UserHandler {
-	userRepo := repository.NewUserRepository(db)
-	avatarRepo := repository.NewAvatarRepository(db)
-	locationRepo := repository.NewLocationRepository(db)
-	userService := services.NewUserService(userRepo, avatarRepo, locationRepo, rdb)
-
-	inventoryRepo := repository.NewInventoryRepository(db)
-	inventoryService := services.NewInventoryService(inventoryRepo)
-
+func NewUserHandler(
+	userService *services.UserService,
+	inventoryService *services.InventoryService,
+	userRepo *repository.UserRepository,
+	equipmentItemRepo *repository.EquipmentItemRepository,
+	potionRepo *repository.PotionRepository,
+	fightChecker *FightChecker,
+) *UserHandler {
 	return &UserHandler{
 		userService:       userService,
 		inventoryService:  inventoryService,
 		userRepo:          userRepo,
-		equipmentItemRepo: repository.NewEquipmentItemRepository(db),
-		potionRepo:        repository.NewPotionRepository(db),
+		equipmentItemRepo: equipmentItemRepo,
+		potionRepo:        potionRepo,
+		fightChecker:      fightChecker,
 	}
 }
 
@@ -179,7 +178,7 @@ func (h *UserHandler) UpdateCurrentUser(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 

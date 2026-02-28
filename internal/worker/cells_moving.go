@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	goredis "github.com/redis/go-redis/v9"
 
 	"moonshine/internal/domain"
 	r "moonshine/internal/redis"
@@ -25,13 +24,13 @@ type CellsMovingWorker struct {
 func NewCellsMovingWorker(
 	locationRepo *repository.LocationRepository,
 	userRepo *repository.UserRepository,
-	rdb *goredis.Client,
+	userCache r.Cache[domain.User],
 	interval time.Duration,
 ) *CellsMovingWorker {
 	return &CellsMovingWorker{
 		locationRepo: locationRepo,
 		userRepo:     userRepo,
-		userCache:    r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		userCache:    userCache,
 		interval:     interval,
 		activeUsers:  make(map[uuid.UUID]context.CancelFunc),
 	}

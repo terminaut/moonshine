@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"moonshine/internal/api/dto"
@@ -18,16 +17,7 @@ type FightHandler struct {
 	locationRepo *repository.LocationRepository
 }
 
-func NewFightHandler(db *sqlx.DB) *FightHandler {
-	locationRepo := repository.NewLocationRepository(db)
-	fightService := services.NewFightService(
-		db,
-		repository.NewFightRepository(db),
-		repository.NewBotRepository(db),
-		repository.NewUserRepository(db),
-		repository.NewRoundRepository(db),
-	)
-
+func NewFightHandler(fightService *services.FightService, locationRepo *repository.LocationRepository) *FightHandler {
 	return &FightHandler{
 		fightService: fightService,
 		locationRepo: locationRepo,
@@ -38,9 +28,9 @@ func handleFightError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, services.ErrNoActiveFight):
 		return ErrNotFound(c, "no active fight")
-	case errors.Is(err, services.ErrUserNotFound):
+	case errors.Is(err, repository.ErrUserNotFound):
 		return ErrNotFound(c, "user not found")
-	case errors.Is(err, services.ErrBotNotFound):
+	case errors.Is(err, repository.ErrBotNotFound):
 		return ErrNotFound(c, "bot not found")
 	case errors.Is(err, services.ErrInvalidBodyPart):
 		return ErrBadRequest(c, "invalid body part")

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
@@ -28,7 +29,11 @@ func setupAuthHandlerTest(t *testing.T) (*AuthHandler, *sqlx.DB, echo.Echo) {
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewAuthHandler(db, "test-secret")
+	userRepo := repository.NewUserRepository(db)
+	avatarRepo := repository.NewAvatarRepository(db)
+	locationRepo := repository.NewLocationRepository(db)
+	authService := services.NewAuthService(userRepo, avatarRepo, locationRepo, "test-secret")
+	handler := NewAuthHandler(authService, locationRepo, userRepo)
 	e := echo.New()
 	e.Validator = &customValidator{v: validator.New()}
 	return handler, db, *e

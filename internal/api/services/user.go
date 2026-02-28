@@ -3,14 +3,12 @@ package services
 import (
 	"context"
 	"log"
-	"time"
 
 	"moonshine/internal/domain"
 	r "moonshine/internal/redis"
 	"moonshine/internal/repository"
 
 	"github.com/google/uuid"
-	goredis "github.com/redis/go-redis/v9"
 )
 
 type UserService struct {
@@ -24,13 +22,13 @@ func NewUserService(
 	userRepo *repository.UserRepository,
 	avatarRepo *repository.AvatarRepository,
 	locationRepo *repository.LocationRepository,
-	rdb *goredis.Client,
+	userCache r.Cache[domain.User],
 ) *UserService {
 	return &UserService{
 		userRepo:     userRepo,
 		avatarRepo:   avatarRepo,
 		locationRepo: locationRepo,
-		userCache:    r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		userCache:    userCache,
 	}
 }
 
@@ -44,9 +42,14 @@ func (s *UserService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*do
 }
 
 func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uuid.UUID) (*domain.User, *domain.Location, bool, error) {
-	user, err := s.userCache.Get(ctx, userID.String())
-	if err != nil {
-		log.Printf("[UserService] redis get error: %v", err)
+	var user *domain.User
+	var err error
+
+	if s.userCache != nil {
+		user, err = s.userCache.Get(ctx, userID.String())
+		if err != nil {
+			log.Printf("[UserService] redis get error: %v", err)
+		}
 	}
 
 	if user == nil {
@@ -55,7 +58,9 @@ func (s *UserService) GetCurrentUserWithRelations(ctx context.Context, userID uu
 			return nil, nil, false, repository.ErrUserNotFound
 		}
 
-		_ = s.userCache.Set(ctx, userID.String(), user)
+		if s.userCache != nil {
+			_ = s.userCache.Set(ctx, userID.String(), user)
+		}
 	}
 
 	var location *domain.Location
@@ -81,14 +86,18 @@ func (s *UserService) UpdateUser(ctx context.Context, userID uuid.UUID, avatarID
 		return nil, err
 	}
 
-	_ = s.userCache.Delete(ctx, userID.String())
+	if s.userCache != nil {
+		_ = s.userCache.Delete(ctx, userID.String())
+	}
 
 	user, err := s.GetCurrentUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	_ = s.userCache.Set(ctx, userID.String(), user)
+	if s.userCache != nil {
+		_ = s.userCache.Set(ctx, userID.String(), user)
+	}
 
 	return user, nil
 }

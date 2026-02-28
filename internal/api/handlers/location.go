@@ -2,26 +2,22 @@ package handlers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/middleware"
 	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
-	"moonshine/internal/worker"
 )
 
 type LocationHandler struct {
 	locationService *services.LocationService
 	locationRepo    *repository.LocationRepository
 	userRepo        *repository.UserRepository
+	fightChecker    *FightChecker
 }
 
 type LocationCellsResponse struct {
@@ -35,19 +31,17 @@ type MoveToCellResponse struct {
 	TimePerCell int    `json:"time_per_cell"`
 }
 
-func NewLocationHandler(db *sqlx.DB, rdb *redis.Client) *LocationHandler {
-	locationRepo := repository.NewLocationRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	movingWorker := worker.NewCellsMovingWorker(locationRepo, userRepo, rdb, 5*time.Second)
-	locationService, err := services.NewLocationService(db, rdb, locationRepo, userRepo, movingWorker)
-	if err != nil {
-		log.Fatalf("Failed to create LocationService: %v", err)
-	}
-
+func NewLocationHandler(
+	locationService *services.LocationService,
+	locationRepo *repository.LocationRepository,
+	userRepo *repository.UserRepository,
+	fightChecker *FightChecker,
+) *LocationHandler {
 	return &LocationHandler{
 		locationService: locationService,
 		locationRepo:    locationRepo,
 		userRepo:        userRepo,
+		fightChecker:    fightChecker,
 	}
 }
 
@@ -62,7 +56,7 @@ func (h *LocationHandler) MoveToLocation(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -94,7 +88,7 @@ func (h *LocationHandler) MoveToCell(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -155,7 +149,7 @@ func (h *LocationHandler) GetLocationCells(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 

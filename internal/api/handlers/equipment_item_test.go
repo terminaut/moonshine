@@ -27,7 +27,20 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewEquipmentItemHandler(db, nil)
+	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
+	inventoryRepo := repository.NewInventoryRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	fightChecker := NewFightChecker(userRepo)
+	handler := NewEquipmentItemHandler(
+		services.NewEquipmentItemService(equipmentItemRepo),
+		services.NewEquipmentItemBuyService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		services.NewEquipmentItemSellService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		equipmentItemRepo,
+		nil,
+		fightChecker,
+	)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
@@ -44,7 +57,6 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 		LocationID: loc.ID,
 		Attack:     1, Defense: 1, Hp: 20, CurrentHp: 20, Level: 5, Gold: 500, Exp: 0, FreeStats: 0,
 	}
-	userRepo := repository.NewUserRepository(db)
 	require.NoError(t, userRepo.Create(user))
 
 	var categoryID uuid.UUID
@@ -57,10 +69,8 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 		Attack: 5, Defense: 2, Hp: 10, RequiredLevel: 1, Price: 100,
 		EquipmentCategoryID: categoryID,
 	}
-	itemRepo := repository.NewEquipmentItemRepository(db)
-	require.NoError(t, itemRepo.Create(item))
+	require.NoError(t, equipmentItemRepo.Create(item))
 
-	inventoryRepo := repository.NewInventoryRepository(db)
 	require.NoError(t, inventoryRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: &item.ID}))
 
 	e := echo.New()

@@ -14,23 +14,34 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
+
+	"github.com/google/uuid"
 )
+
+type noopMovingWorker struct{}
+
+func (noopMovingWorker) StartMovement(_ uuid.UUID, _ []string) error { return nil }
 
 func setupLocationHandlerTest(t *testing.T) (*LocationHandler, *sqlx.DB, *domain.User, *domain.Location, echo.Echo) {
 	if testDB == nil {
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewLocationHandler(db, nil)
+	locRepo := repository.NewLocationRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	locationService, err := services.NewLocationService(db, locRepo, userRepo, noopMovingWorker{}, nil, nil)
+	require.NoError(t, err)
+	fightChecker := NewFightChecker(userRepo)
+	handler := NewLocationHandler(locationService, locRepo, userRepo, fightChecker)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
 		Cell:     false,
 		Inactive: false,
 	}
-	locRepo := repository.NewLocationRepository(db)
 	require.NoError(t, locRepo.Create(loc))
 	user := &domain.User{
 		Username:   fmt.Sprintf("u%d", time.Now().UnixNano()),
@@ -40,7 +51,6 @@ func setupLocationHandlerTest(t *testing.T) (*LocationHandler, *sqlx.DB, *domain
 		LocationID: loc.ID,
 		Attack:     1, Defense: 1, Hp: 20, CurrentHp: 20, Level: 1, Gold: 0, Exp: 0, FreeStats: 0,
 	}
-	userRepo := repository.NewUserRepository(db)
 	require.NoError(t, userRepo.Create(user))
 	e := echo.New()
 	return handler, db, user, loc, *e

@@ -46,8 +46,6 @@ type GetCurrentFightResult struct {
 }
 
 var ErrNoActiveFight = errors.New("no active fight")
-var ErrUserNotFound = errors.New("user not found")
-var ErrBotNotFound = errors.New("bot not found")
 var ErrInvalidBodyPart = errors.New("invalid body part")
 
 func isValidBodyPart(part string) bool {
@@ -58,7 +56,7 @@ func isValidBodyPart(part string) bool {
 func (s *FightService) GetCurrentFight(ctx context.Context, userID uuid.UUID) (*GetCurrentFightResult, error) {
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
-		return nil, ErrUserNotFound
+		return nil, repository.ErrUserNotFound
 	}
 
 	fight, err := s.fightRepo.FindActiveByUserID(userID)
@@ -74,7 +72,7 @@ func (s *FightService) GetCurrentFight(ctx context.Context, userID uuid.UUID) (*
 
 	bot, err := s.botRepo.FindByID(fight.BotID)
 	if err != nil {
-		return nil, ErrBotNotFound
+		return nil, repository.ErrBotNotFound
 	}
 
 	return &GetCurrentFightResult{
@@ -99,12 +97,12 @@ func (s *FightService) Hit(ctx context.Context, userID uuid.UUID, playerAttackPo
 
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
-		return nil, ErrUserNotFound
+		return nil, repository.ErrUserNotFound
 	}
 
 	bot, err := s.botRepo.FindByID(fight.BotID)
 	if err != nil {
-		return nil, ErrBotNotFound
+		return nil, repository.ErrBotNotFound
 	}
 
 	rounds, err := s.roundRepo.FindByFightID(fight.ID)

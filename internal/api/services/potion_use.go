@@ -41,7 +41,7 @@ func (s *PotionUseService) UsePotion(ctx context.Context, userID uuid.UUID, slot
 
 	potion, err := s.potionRepo.FindByID(potionId)
 	if err != nil {
-		return ErrPotionNotFound
+		return repository.ErrPotionNotFound
 	}
 
 	fightRepo := repository.NewFightRepository(s.db)

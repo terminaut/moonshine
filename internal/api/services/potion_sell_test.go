@@ -112,6 +112,6 @@ func TestPotionSellService_SellPotion(t *testing.T) {
 		)
 
 		err := service.SellPotion(ctx, user.ID, "nonexistent-potion")
-		assert.ErrorIs(t, err, ErrPotionNotFound)
+		assert.ErrorIs(t, err, repository.ErrPotionNotFound)
 	})
 }
