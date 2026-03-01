@@ -66,6 +66,6 @@ func TestEquipmentItemSellService_SellEquipmentItem(t *testing.T) {
 		)
 
 		err := service.SellEquipmentItem(ctx, user.ID, "nonexistent-slug")
-		assert.ErrorIs(t, err, ErrEquipmentItemNotFound)
+		assert.ErrorIs(t, err, repository.ErrEquipmentItemNotFound)
 	})
 }

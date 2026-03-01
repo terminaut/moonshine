@@ -142,7 +142,7 @@ func TestPotionTakeOnService_TakeOnPotion(t *testing.T) {
 		user, potion := setupPotionTakeOnTestData(t)
 
 		potions := make([]*domain.Potion, 3)
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			ts := time.Now().UnixNano() + int64(i)
 			p := &domain.Potion{
 				Name:  fmt.Sprintf("Fill Potion %d", ts),
@@ -162,7 +162,7 @@ func TestPotionTakeOnService_TakeOnPotion(t *testing.T) {
 		}
 
 		svc := newService()
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			err := svc.TakeOnPotion(ctx, user.ID, potions[i].ID)
 			require.NoError(t, err)
 		}

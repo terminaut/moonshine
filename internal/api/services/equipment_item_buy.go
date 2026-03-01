@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	ErrInsufficientGold      = errors.New("insufficient gold")
-	ErrEquipmentItemNotFound = errors.New("equipment item not found")
+	ErrInsufficientGold = errors.New("insufficient gold")
 )
 
 type EquipmentItemBuyService struct {
@@ -46,7 +45,7 @@ func (s *EquipmentItemBuyService) BuyEquipmentItem(ctx context.Context, userID u
 
 	item, err := s.equipmentItemRepo.FindBySlug(itemSlug)
 	if err != nil {
-		return ErrEquipmentItemNotFound
+		return repository.ErrEquipmentItemNotFound
 	}
 
 	user, err := s.userRepo.FindByID(userID)

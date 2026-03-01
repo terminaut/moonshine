@@ -10,8 +10,16 @@ import (
 	"moonshine/internal/repository"
 )
 
-func checkNotInFight(c echo.Context, userRepo *repository.UserRepository, userID uuid.UUID) error {
-	inFight, err := userRepo.InFight(userID)
+type FightChecker struct {
+	userRepo *repository.UserRepository
+}
+
+func NewFightChecker(userRepo *repository.UserRepository) *FightChecker {
+	return &FightChecker{userRepo: userRepo}
+}
+
+func (fc *FightChecker) CheckNotInFight(c echo.Context, userID uuid.UUID) error {
+	inFight, err := fc.userRepo.InFight(userID)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}
@@ -21,8 +29,8 @@ func checkNotInFight(c echo.Context, userRepo *repository.UserRepository, userID
 	return nil
 }
 
-func checkInFight(c echo.Context, userRepo *repository.UserRepository, userID uuid.UUID) error {
-	inFight, err := userRepo.InFight(userID)
+func (fc *FightChecker) CheckInFight(c echo.Context, userID uuid.UUID) error {
+	inFight, err := fc.userRepo.InFight(userID)
 	if err != nil {
 		return ErrInternalServerError(c)
 	}

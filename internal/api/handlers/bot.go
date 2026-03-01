@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"moonshine/internal/api/dto"
@@ -14,27 +13,18 @@ import (
 )
 
 type BotHandler struct {
-	botService *services.BotService
-	userRepo   *repository.UserRepository
+	botService   *services.BotService
+	fightChecker *FightChecker
 }
 
 type BotResponse struct {
 	Bots []*dto.Bot `json:"bots"`
 }
 
-func NewBotHandler(db *sqlx.DB) *BotHandler {
-	userRepo := repository.NewUserRepository(db)
-	botService := services.NewBotService(
-		repository.NewLocationRepository(db),
-		repository.NewBotRepository(db),
-		userRepo,
-		repository.NewFightRepository(db),
-		repository.NewRoundRepository(db),
-	)
-
+func NewBotHandler(botService *services.BotService, fightChecker *FightChecker) *BotHandler {
 	return &BotHandler{
-		botService: botService,
-		userRepo:   userRepo,
+		botService:   botService,
+		fightChecker: fightChecker,
 	}
 }
 
@@ -49,7 +39,7 @@ func (h *BotHandler) GetBots(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 

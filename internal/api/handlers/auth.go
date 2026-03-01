@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"moonshine/internal/api/dto"
@@ -18,12 +17,7 @@ type AuthHandler struct {
 	userRepo     *repository.UserRepository
 }
 
-func NewAuthHandler(db *sqlx.DB, jwtKey string) *AuthHandler {
-	userRepo := repository.NewUserRepository(db)
-	avatarRepo := repository.NewAvatarRepository(db)
-	locationRepo := repository.NewLocationRepository(db)
-	authService := services.NewAuthService(userRepo, avatarRepo, locationRepo, jwtKey)
-
+func NewAuthHandler(authService *services.AuthService, locationRepo *repository.LocationRepository, userRepo *repository.UserRepository) *AuthHandler {
 	return &AuthHandler{
 		authService:  authService,
 		locationRepo: locationRepo,

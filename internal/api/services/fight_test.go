@@ -130,7 +130,7 @@ func TestFightService_GetCurrentFight(t *testing.T) {
 	t.Run("non-existent user returns error", func(t *testing.T) {
 		_, err := service.GetCurrentFight(ctx, uuid.New())
 		assert.Error(t, err)
-		assert.Equal(t, ErrUserNotFound, err)
+		assert.Equal(t, repository.ErrUserNotFound, err)
 	})
 
 	t.Run("user without active fight returns error", func(t *testing.T) {

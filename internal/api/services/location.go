@@ -3,11 +3,9 @@ package services
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	goredis "github.com/redis/go-redis/v9"
 
 	"moonshine/internal/domain"
 	r "moonshine/internal/redis"
@@ -34,10 +32,11 @@ type LocationService struct {
 
 func NewLocationService(
 	db *sqlx.DB,
-	rdb *goredis.Client,
 	locationRepo *repository.LocationRepository,
 	userRepo *repository.UserRepository,
 	movingWorker MovingWorker,
+	userCache r.Cache[domain.User],
+	cellsCache r.Cache[[]domain.LocationCell],
 ) (*LocationService, error) {
 	graph, err := NewLocationGraph(locationRepo)
 	if err != nil {
@@ -50,8 +49,8 @@ func NewLocationService(
 		userRepo:     userRepo,
 		movingWorker: movingWorker,
 		graph:        graph,
-		userCache:    r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
-		cellsCache:   r.NewJSONCache[[]domain.LocationCell](rdb, "location_cells", 10*time.Minute),
+		userCache:    userCache,
+		cellsCache:   cellsCache,
 	}, nil
 }
 
@@ -85,9 +84,7 @@ func (s *LocationService) MoveToLocation(ctx context.Context, userID uuid.UUID, 
 		return nil
 	}
 
-	updateLocationQuery := `UPDATE users SET location_id = $1 WHERE id = $2`
-	_, err = tx.Exec(updateLocationQuery, targetLocation.ID, userID)
-	if err != nil {
+	if err = s.userRepo.UpdateLocationIDWithExt(tx, userID, targetLocation.ID); err != nil {
 		return err
 	}
 
@@ -95,7 +92,9 @@ func (s *LocationService) MoveToLocation(ctx context.Context, userID uuid.UUID, 
 		return err
 	}
 
-	_ = s.userCache.Delete(ctx, userID.String())
+	if s.userCache != nil {
+		_ = s.userCache.Delete(ctx, userID.String())
+	}
 
 	return nil
 }
@@ -111,9 +110,11 @@ func (s *LocationService) StartCellMovement(userID uuid.UUID, cellSlugs []string
 func (s *LocationService) FetchCells(ctx context.Context, locationID uuid.UUID) ([]domain.LocationCell, error) {
 	cacheKey := locationID.String()
 
-	cached, err := s.cellsCache.Get(ctx, cacheKey)
-	if err == nil && cached != nil && *cached != nil && len(*cached) > 0 {
-		return *cached, nil
+	if s.cellsCache != nil {
+		cached, err := s.cellsCache.Get(ctx, cacheKey)
+		if err == nil && cached != nil && *cached != nil && len(*cached) > 0 {
+			return *cached, nil
+		}
 	}
 
 	cells, err := s.locationRepo.FindCellsByLocationID(locationID)
@@ -136,7 +137,7 @@ func (s *LocationService) FetchCells(ctx context.Context, locationID uuid.UUID) 
 		}
 	}
 
-	if len(cellsList) > 0 {
+	if s.cellsCache != nil && len(cellsList) > 0 {
 		_ = s.cellsCache.Set(ctx, cacheKey, &cellsList)
 	}
 

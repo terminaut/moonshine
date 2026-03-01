@@ -92,7 +92,7 @@ func (s *EquipmentItemTakeOnService) TakeOnEquipmentItem(ctx context.Context, us
 
 	item, err := s.equipmentItemRepo.FindByID(itemID)
 	if err != nil {
-		return ErrEquipmentItemNotFound
+		return repository.ErrEquipmentItemNotFound
 	}
 
 	categoryQuery := `SELECT type FROM equipment_categories WHERE id = $1 AND deleted_at IS NULL`

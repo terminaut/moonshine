@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
@@ -25,29 +22,36 @@ type PotionHandler struct {
 	potionTakeOnService  *services.PotionTakeOnService
 	potionTakeOffService *services.PotionTakeOffService
 	potionUseService     *services.PotionUseService
-	userRepo             *repository.UserRepository
 	userCache            r.Cache[domain.User]
+	fightChecker         *FightChecker
 }
 
-func NewPotionHandler(db *sqlx.DB, rdb *redis.Client) *PotionHandler {
-	potionRepo := repository.NewPotionRepository(db)
-	inventoryRepo := repository.NewInventoryRepository(db)
-	userRepo := repository.NewUserRepository(db)
-
+func NewPotionHandler(
+	potionBuyService *services.PotionBuyService,
+	potionSellService *services.PotionSellService,
+	potionTakeOnService *services.PotionTakeOnService,
+	potionTakeOffService *services.PotionTakeOffService,
+	potionUseService *services.PotionUseService,
+	potionRepo *repository.PotionRepository,
+	userCache r.Cache[domain.User],
+	fightChecker *FightChecker,
+) *PotionHandler {
 	return &PotionHandler{
 		potionRepo:           potionRepo,
-		potionBuyService:     services.NewPotionBuyService(db, potionRepo, inventoryRepo, userRepo),
-		potionSellService:    services.NewPotionSellService(db, potionRepo, userRepo),
-		potionTakeOnService:  services.NewPotionTakeOnService(db, potionRepo, inventoryRepo, userRepo),
-		potionTakeOffService: services.NewPotionTakeOffService(db, potionRepo, inventoryRepo, userRepo),
-		potionUseService:     services.NewPotionUseService(db, potionRepo, userRepo),
-		userRepo:             userRepo,
-		userCache:            r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		potionBuyService:     potionBuyService,
+		potionSellService:    potionSellService,
+		potionTakeOnService:  potionTakeOnService,
+		potionTakeOffService: potionTakeOffService,
+		potionUseService:     potionUseService,
+		userCache:            userCache,
+		fightChecker:         fightChecker,
 	}
 }
 
 func (h *PotionHandler) invalidateUserCache(ctx context.Context, userID string) {
-	_ = h.userCache.Delete(ctx, userID)
+	if h.userCache != nil {
+		_ = h.userCache.Delete(ctx, userID)
+	}
 }
 
 func (h *PotionHandler) GetPotions(c echo.Context) error {
@@ -56,7 +60,7 @@ func (h *PotionHandler) GetPotions(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -79,14 +83,14 @@ func (h *PotionHandler) BuyPotion(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
 	err = h.potionBuyService.BuyPotion(c.Request().Context(), userID, potionSlug)
 	if err != nil {
 		switch {
-		case errors.Is(err, services.ErrPotionNotFound):
+		case errors.Is(err, repository.ErrPotionNotFound):
 			return ErrNotFound(c, "potion not found")
 		case errors.Is(err, services.ErrInsufficientGold):
 			return ErrBadRequest(c, "insufficient gold")
@@ -112,7 +116,7 @@ func (h *PotionHandler) SellPotion(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -121,7 +125,7 @@ func (h *PotionHandler) SellPotion(c echo.Context) error {
 		switch {
 		case errors.Is(err, services.ErrItemNotOwned):
 			return ErrBadRequest(c, "potion not owned")
-		case errors.Is(err, services.ErrPotionNotFound):
+		case errors.Is(err, repository.ErrPotionNotFound):
 			return ErrNotFound(c, "potion not found")
 		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")
@@ -145,7 +149,7 @@ func (h *PotionHandler) TakeOnPotion(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -157,7 +161,7 @@ func (h *PotionHandler) TakeOnPotion(c echo.Context) error {
 	err = h.potionTakeOnService.TakeOnPotion(c.Request().Context(), userID, potion.ID)
 	if err != nil {
 		switch {
-		case errors.Is(err, services.ErrPotionNotFound):
+		case errors.Is(err, repository.ErrPotionNotFound):
 			return ErrNotFound(c, "potion not found")
 		case errors.Is(err, services.ErrItemNotInInventory):
 			return ErrBadRequest(c, "potion not in inventory")
@@ -185,7 +189,7 @@ func (h *PotionHandler) TakeOffPotion(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -218,7 +222,7 @@ func (h *PotionHandler) UsePotion(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckInFight(c, userID); err != nil {
 		return err
 	}
 

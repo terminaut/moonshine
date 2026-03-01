@@ -113,7 +113,7 @@ func TestEquipmentItemBuyService_BuyEquipmentItem(t *testing.T) {
 		)
 
 		err := service.BuyEquipmentItem(ctx, user.ID, "nonexistent-item")
-		assert.ErrorIs(t, err, ErrEquipmentItemNotFound)
+		assert.ErrorIs(t, err, repository.ErrEquipmentItemNotFound)
 	})
 
 	t.Run("user not found", func(t *testing.T) {

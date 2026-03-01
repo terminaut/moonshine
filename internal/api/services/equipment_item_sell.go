@@ -44,7 +44,7 @@ func (s *EquipmentItemSellService) SellEquipmentItem(ctx context.Context, userID
 
 	item, err := s.equipmentItemRepo.FindBySlug(itemSlug)
 	if err != nil {
-		return ErrEquipmentItemNotFound
+		return repository.ErrEquipmentItemNotFound
 	}
 
 	var count int

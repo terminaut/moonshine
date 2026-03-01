@@ -36,7 +36,7 @@ func (s *PotionSellService) SellPotion(ctx context.Context, userID uuid.UUID, po
 
 	potion, err := s.potionRepo.FindBySlug(potionSlug)
 	if err != nil {
-		return ErrPotionNotFound
+		return repository.ErrPotionNotFound
 	}
 
 	invRepo := repository.NewInventoryRepository(tx)

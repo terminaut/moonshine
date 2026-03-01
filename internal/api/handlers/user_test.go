@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,10 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"context"
-
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
+	"moonshine/internal/api/services"
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
 )
@@ -28,14 +28,22 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 		t.Skip("Test database not initialized")
 	}
 	db := testDB
-	handler := NewUserHandler(db, nil)
+	userRepo := repository.NewUserRepository(db)
+	avatarRepo := repository.NewAvatarRepository(db)
+	locRepo := repository.NewLocationRepository(db)
+	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
+	potionRepo := repository.NewPotionRepository(db)
+	inventoryRepo := repository.NewInventoryRepository(db)
+	userService := services.NewUserService(userRepo, avatarRepo, locRepo, nil)
+	inventoryService := services.NewInventoryService(inventoryRepo)
+	fightChecker := NewFightChecker(userRepo)
+	handler := NewUserHandler(userService, inventoryService, userRepo, equipmentItemRepo, potionRepo, fightChecker)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),
 		Cell:     false,
 		Inactive: false,
 	}
-	locRepo := repository.NewLocationRepository(db)
 	require.NoError(t, locRepo.Create(loc))
 	user := &domain.User{
 		Username:   fmt.Sprintf("u%d", time.Now().UnixNano()),
@@ -45,7 +53,6 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 		LocationID: loc.ID,
 		Attack:     1, Defense: 1, Hp: 20, CurrentHp: 20, Level: 1, Gold: 100, Exp: 0, FreeStats: 0,
 	}
-	userRepo := repository.NewUserRepository(db)
 	require.NoError(t, userRepo.Create(user))
 	e := echo.New()
 	return handler, db, user, *e
@@ -110,7 +117,7 @@ func TestUserHandler_GetUserInventory(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 
-	t.Run("success returns 200 and array", func(t *testing.T) {
+	t.Run("success returns 200 and inventory", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/users/me/inventory", nil)
 		req = req.WithContext(ctxWithUserID(user.ID))
 		rec := httptest.NewRecorder()
@@ -120,10 +127,10 @@ func TestUserHandler_GetUserInventory(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, rec.Code)
 
-		var arr []dto.EquipmentItem
-		err = json.Unmarshal(rec.Body.Bytes(), &arr)
+		var resp dto.InventoryResponse
+		err = json.Unmarshal(rec.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		assert.NotNil(t, arr)
+		assert.NotNil(t, resp.EquipmentItems)
 	})
 }
 

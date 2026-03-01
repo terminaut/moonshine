@@ -67,7 +67,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[1].Slug)
@@ -92,7 +92,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[3].Slug)
@@ -111,7 +111,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[0].Slug)
@@ -133,7 +133,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		_, err = service.FindShortestPath(locations[0].Slug, locations[4].Slug)
@@ -149,7 +149,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		_, err = service.FindShortestPath("non_existent", locations[0].Slug)
@@ -165,7 +165,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		_, err = service.FindShortestPath(locations[0].Slug, "non_existent")
@@ -190,7 +190,7 @@ func TestLocationService_FindShortestPath(t *testing.T) {
 
 		locationRepo := repository.NewLocationRepository(db)
 		userRepo := repository.NewUserRepository(db)
-		service, err := NewLocationService(db, nil, locationRepo, userRepo, noopMovingWorker{})
+		service, err := NewLocationService(db, locationRepo, userRepo, noopMovingWorker{}, nil, nil)
 		require.NoError(t, err)
 
 		path, err := service.FindShortestPath(locations[0].Slug, locations[4].Slug)

@@ -5,9 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	goredis "github.com/redis/go-redis/v9"
-
 	"moonshine/internal/api/services"
 	"moonshine/internal/api/ws"
 	"moonshine/internal/domain"
@@ -23,15 +20,18 @@ type HpWorker struct {
 	ticker                    *time.Ticker
 }
 
-func NewHpWorker(db *sqlx.DB, rdb *goredis.Client, interval time.Duration) *HpWorker {
-	userRepo := repository.NewUserRepository(db)
-	healthRegenerationService := services.NewHealthRegenerationService(userRepo)
-
+func NewHpWorker(
+	healthRegenerationService *services.HealthRegenerationService,
+	userRepo *repository.UserRepository,
+	hub *ws.Hub,
+	userCache r.Cache[domain.User],
+	interval time.Duration,
+) *HpWorker {
 	return &HpWorker{
 		healthRegenerationService: healthRegenerationService,
 		userRepo:                  userRepo,
-		hub:                       ws.GetHub(),
-		userCache:                 r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		hub:                       hub,
+		userCache:                 userCache,
 		ticker:                    time.NewTicker(interval),
 	}
 }

@@ -27,9 +27,9 @@ type WebSocketHandler struct {
 	config *config.Config
 }
 
-func NewWebSocketHandler(cfg *config.Config) *WebSocketHandler {
+func NewWebSocketHandler(hub *ws.Hub, cfg *config.Config) *WebSocketHandler {
 	return &WebSocketHandler{
-		hub:    ws.GetHub(),
+		hub:    hub,
 		config: cfg,
 	}
 }

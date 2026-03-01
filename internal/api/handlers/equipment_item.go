@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 
 	"moonshine/internal/api/dto"
 	"moonshine/internal/api/middleware"
@@ -25,21 +22,20 @@ type EquipmentItemHandler struct {
 	equipmentItemTakeOnService  *services.EquipmentItemTakeOnService
 	equipmentItemTakeOffService *services.EquipmentItemTakeOffService
 	equipmentItemRepo           *repository.EquipmentItemRepository
-	userRepo                    *repository.UserRepository
 	userCache                   r.Cache[domain.User]
+	fightChecker                *FightChecker
 }
 
-func NewEquipmentItemHandler(db *sqlx.DB, rdb *redis.Client) *EquipmentItemHandler {
-	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
-	equipmentItemService := services.NewEquipmentItemService(equipmentItemRepo)
-
-	inventoryRepo := repository.NewInventoryRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	equipmentItemBuyService := services.NewEquipmentItemBuyService(db, equipmentItemRepo, inventoryRepo, userRepo)
-	equipmentItemSellService := services.NewEquipmentItemSellService(db, equipmentItemRepo, inventoryRepo, userRepo)
-	equipmentItemTakeOnService := services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo)
-	equipmentItemTakeOffService := services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo)
-
+func NewEquipmentItemHandler(
+	equipmentItemService *services.EquipmentItemService,
+	equipmentItemBuyService *services.EquipmentItemBuyService,
+	equipmentItemSellService *services.EquipmentItemSellService,
+	equipmentItemTakeOnService *services.EquipmentItemTakeOnService,
+	equipmentItemTakeOffService *services.EquipmentItemTakeOffService,
+	equipmentItemRepo *repository.EquipmentItemRepository,
+	userCache r.Cache[domain.User],
+	fightChecker *FightChecker,
+) *EquipmentItemHandler {
 	return &EquipmentItemHandler{
 		equipmentItemService:        equipmentItemService,
 		equipmentItemBuyService:     equipmentItemBuyService,
@@ -47,13 +43,15 @@ func NewEquipmentItemHandler(db *sqlx.DB, rdb *redis.Client) *EquipmentItemHandl
 		equipmentItemTakeOnService:  equipmentItemTakeOnService,
 		equipmentItemTakeOffService: equipmentItemTakeOffService,
 		equipmentItemRepo:           equipmentItemRepo,
-		userRepo:                    userRepo,
-		userCache:                   r.NewJSONCache[domain.User](rdb, "user", 5*time.Second),
+		userCache:                   userCache,
+		fightChecker:                fightChecker,
 	}
 }
 
 func (h *EquipmentItemHandler) invalidateUserCache(ctx context.Context, userID string) {
-	_ = h.userCache.Delete(ctx, userID)
+	if h.userCache != nil {
+		_ = h.userCache.Delete(ctx, userID)
+	}
 }
 
 func (h *EquipmentItemHandler) GetEquipmentItems(c echo.Context) error {
@@ -67,7 +65,7 @@ func (h *EquipmentItemHandler) GetEquipmentItems(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -92,14 +90,14 @@ func (h *EquipmentItemHandler) BuyEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
 	err = h.equipmentItemBuyService.BuyEquipmentItem(c.Request().Context(), userID, itemSlug)
 	if err != nil {
 		switch {
-		case errors.Is(err, services.ErrEquipmentItemNotFound):
+		case errors.Is(err, repository.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
 		case errors.Is(err, services.ErrInsufficientGold):
 			return ErrBadRequest(c, "insufficient gold")
@@ -125,7 +123,7 @@ func (h *EquipmentItemHandler) TakeOnEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -137,7 +135,7 @@ func (h *EquipmentItemHandler) TakeOnEquipmentItem(c echo.Context) error {
 	err = h.equipmentItemTakeOnService.TakeOnEquipmentItem(c.Request().Context(), userID, item.ID)
 	if err != nil {
 		switch {
-		case errors.Is(err, services.ErrEquipmentItemNotFound):
+		case errors.Is(err, repository.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
 		case errors.Is(err, services.ErrItemNotInInventory):
 			return ErrBadRequest(c, "item not in inventory")
@@ -167,7 +165,7 @@ func (h *EquipmentItemHandler) TakeOffEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -200,7 +198,7 @@ func (h *EquipmentItemHandler) SellEquipmentItem(c echo.Context) error {
 		return ErrUnauthorized(c)
 	}
 
-	if err := checkNotInFight(c, h.userRepo, userID); err != nil {
+	if err := h.fightChecker.CheckNotInFight(c, userID); err != nil {
 		return err
 	}
 
@@ -209,7 +207,7 @@ func (h *EquipmentItemHandler) SellEquipmentItem(c echo.Context) error {
 		switch {
 		case errors.Is(err, services.ErrItemNotOwned):
 			return ErrBadRequest(c, "item not owned")
-		case errors.Is(err, services.ErrEquipmentItemNotFound):
+		case errors.Is(err, repository.ErrEquipmentItemNotFound):
 			return ErrNotFound(c, "equipment item not found")
 		case errors.Is(err, repository.ErrUserNotFound):
 			return ErrNotFound(c, "user not found")

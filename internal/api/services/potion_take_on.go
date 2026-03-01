@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,10 +9,6 @@ import (
 
 	"moonshine/internal/domain"
 	"moonshine/internal/repository"
-)
-
-var (
-	ErrPotionNotFound = errors.New("potion not found")
 )
 
 type PotionTakeOnService struct {
@@ -61,7 +56,7 @@ func (s *PotionTakeOnService) TakeOnPotion(ctx context.Context, userID uuid.UUID
 
 	_, err = s.potionRepo.FindByID(potionID)
 	if err != nil {
-		return ErrPotionNotFound
+		return repository.ErrPotionNotFound
 	}
 
 	var fieldName string
