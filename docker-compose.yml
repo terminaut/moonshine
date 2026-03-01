@@ -110,7 +110,7 @@ services:
       - backend
 
   vector:
-    image: timberio/vector:latest-alpine
+    image: timberio/vector:0.43.1-alpine
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./monitoring/vector.toml:/etc/vector/vector.toml:ro
