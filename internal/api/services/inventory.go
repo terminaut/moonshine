@@ -26,3 +26,11 @@ func (s *InventoryService) GetUserInventory(ctx context.Context, userID uuid.UUI
 func (s *InventoryService) GetUserInventoryPotions(ctx context.Context, userID uuid.UUID) ([]*domain.Potion, error) {
 	return s.inventoryRepo.FindPotionsByUserID(userID)
 }
+
+func (s *InventoryService) GetUserInventoryToolItems(ctx context.Context, userID uuid.UUID) ([]*domain.ToolItem, error) {
+	return s.inventoryRepo.FindToolItemsByUserID(userID)
+}
+
+func (s *InventoryService) GetUserInventoryResources(ctx context.Context, userID uuid.UUID) ([]*domain.Resource, error) {
+	return s.inventoryRepo.FindResourcesByUserID(userID)
+}

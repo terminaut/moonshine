@@ -5,8 +5,10 @@ import SignIn from './pages/SignIn'
 import Location from './pages/Location'
 import Profile from './pages/Profile'
 import EquipmentItems from './pages/EquipmentItems'
+import ToolItemsShop from './pages/ToolItemsShop'
 import Bots from './pages/Bots'
 import Fight from './pages/Fight'
+import ResourcesGather from './pages/ResourcesGather'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -40,6 +42,14 @@ function App() {
           }
         />
         <Route
+          path="/tool_items/shop"
+          element={
+            <ProtectedRoute>
+              <ToolItemsShop />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/bots/:location_slug"
           element={
             <ProtectedRoute>
@@ -56,6 +66,14 @@ function App() {
           }
         />
         <Route
+          path="/resources/:location_slug"
+          element={
+            <ProtectedRoute>
+              <ResourcesGather />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/"
           element={<Navigate to="/locations/moonshine" replace />}
         />
@@ -66,4 +84,3 @@ function App() {
 }
 
 export default App
-

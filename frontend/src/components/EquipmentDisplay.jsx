@@ -11,6 +11,11 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
     if (p.startsWith('images/')) {
       p = p.replace(/^images\//, '')
     }
+    // Tool item assets are stored as /tool_items/<filename>, while DB can contain category subfolders.
+    if (/^tool_items\/[^/]+\/[^/]+$/.test(p)) {
+      const parts = p.split('/')
+      p = `tool_items/${parts[2]}`
+    }
     if (p.includes('bots/') || p.includes('rat') || p.includes('bear') || p.includes('spider') || p.includes('skeleton') || p.includes('zombie') || p.includes('boar')) {
       if (!p.includes('bots/')) {
         p = `bots/${p}`
@@ -26,6 +31,18 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
     return normalizedPath
   }
 
+  const getEquippedItemForSlot = (slotName) => {
+    const directItem = equippedItems?.[slotName] || equippedItems?.[slotName.toLowerCase()]
+    if (directItem) return directItem
+
+    // Tool item is visually rendered in weapon slot.
+    if (slotName === 'weapon') {
+      return equippedItems?.tool || equippedItems?.toolItem || equippedItems?.tool_item || null
+    }
+
+    return null
+  }
+
   const potionStatToType = (stat) => {
     switch (stat) {
       case 'CURRENT_HP': return 'current_hp'
@@ -36,7 +53,7 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
   }
 
   const getEquipmentSlotImage = (slotName) => {
-    const equippedItem = equippedItems?.[slotName] || equippedItems?.[slotName.toLowerCase()]
+    const equippedItem = getEquippedItemForSlot(slotName)
     if (equippedItem) {
       if (slotName.startsWith('potion') && equippedItem.stat) {
         return `/assets/images/potions/${potionStatToType(equippedItem.stat)}/small.png`
@@ -50,7 +67,7 @@ export default function EquipmentDisplay({ user, equippedItems, onSlotClick, rea
   }
 
   const hasEquippedItem = (slotName) => {
-    const equippedItem = equippedItems?.[slotName] || equippedItems?.[slotName.toLowerCase()]
+    const equippedItem = getEquippedItemForSlot(slotName)
     if (!equippedItem) return false
     if (slotName.startsWith('potion')) return !!equippedItem.stat
     return !!equippedItem.image

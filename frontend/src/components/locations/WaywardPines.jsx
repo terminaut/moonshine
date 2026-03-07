@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MapGrid from './MapGrid'
-import { botAPI } from '../../lib/api'
+import { botAPI, resourceAPI } from '../../lib/api'
 import { preloadImages } from '../../lib/imageCache'
 import { useAuth } from '../../context/AuthContext'
 import './WaywardPines.css'
@@ -10,7 +10,9 @@ export default function WaywardPines() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [bots, setBots] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [resources, setResources] = useState([])
+  const [botsLoading, setBotsLoading] = useState(true)
+  const [resourcesLoading, setResourcesLoading] = useState(true)
   const currentSlug = user?.locationSlug || user?.location?.slug || ''
   const currentCellSlug = currentSlug.endsWith('cell') ? currentSlug : '29cell'
 
@@ -19,15 +21,44 @@ export default function WaywardPines() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    setBotsLoading(true)
+    setResourcesLoading(true)
+
     botAPI.getBots(currentCellSlug)
       .then((data) => {
-        setBots(data)
-        setLoading(false)
+        if (!cancelled) {
+          setBots(data)
+        }
       })
       .catch((err) => {
         console.error('[WaywardPines] Error loading bots:', err)
-        setLoading(false)
       })
+      .finally(() => {
+        if (!cancelled) {
+          setBotsLoading(false)
+        }
+      })
+
+    resourceAPI.getResources(currentCellSlug)
+      .then((data) => {
+        if (!cancelled) {
+          setResources(data || [])
+        }
+      })
+      .catch((err) => {
+        console.error('[WaywardPines] Error loading resources:', err)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setResourcesLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [currentCellSlug])
 
   const handleAttack = async (botSlug) => {
@@ -41,6 +72,23 @@ export default function WaywardPines() {
       console.error('[WaywardPines] Error attacking bot:', err)
       alert(err.message || 'Ошибка при атаке бота')
     }
+  }
+
+  const handleGather = async (resourceSlug) => {
+    if (!resourceSlug) {
+      return
+    }
+    navigate(`/resources/${currentCellSlug}?slug=${resourceSlug}`)
+  }
+
+  const normalizeImagePath = (img) => {
+    if (!img) return null
+    let p = img
+    if (p.startsWith('/')) p = p.slice(1)
+    p = p.replace(/^frontend\/assets\/images\//, '')
+    if (p.startsWith('assets/images/')) p = p.replace(/^assets\/images\//, '')
+    if (!p.startsWith('images/')) p = `images/${p}`
+    return `/assets/${p}`
   }
 
   return (
@@ -59,7 +107,7 @@ export default function WaywardPines() {
         </div>
         <div className="wayward-pines-bots">
           <h3>Боты</h3>
-          {loading ? (
+          {botsLoading ? (
             <div>Загрузка...</div>
           ) : bots.length === 0 ? (
             <div>Боты не найдены</div>
@@ -81,6 +129,39 @@ export default function WaywardPines() {
                 </div>
               ))}
             </div>
+          )}
+          <h3 className="wayward-pines-resources-title">Ресурсы</h3>
+          {resourcesLoading ? (
+            <div>Загрузка...</div>
+          ) : resources.length === 0 ? (
+            <div>Ресурсы не найдены</div>
+          ) : (
+            <>
+              {resources[0]?.image ? (
+                <img
+                  src={normalizeImagePath(resources[0].image)}
+                  alt={resources[0].name}
+                  className="resource-preview-image"
+                />
+              ) : null}
+              <div className="resources-list">
+                {resources.map((resource) => (
+                  <div key={resource.id} className="resource-item">
+                    <span>{resource.name}</span>
+                  </div>
+                ))}
+              </div>
+              <a
+                href="#"
+                className="resource-gather-link resource-gather-link-bottom"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleGather(resources[0]?.slug)
+                }}
+              >
+                собрать
+              </a>
+            </>
           )}
         </div>
       </div>

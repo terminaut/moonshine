@@ -98,7 +98,8 @@ func TestEquipmentItemTakeOnService_TakeOnEquipmentItem(t *testing.T) {
 	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
 	inventoryRepo := repository.NewInventoryRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	service := NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo)
+	toolItemRepo := repository.NewToolItemRepository(db)
+	service := NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo, toolItemRepo)
 
 	t.Run("successfully equip item", func(t *testing.T) {
 		err := service.TakeOnEquipmentItem(ctx, user.ID, item.ID)

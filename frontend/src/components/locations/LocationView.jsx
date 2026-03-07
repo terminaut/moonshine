@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { locationAPI } from '../../lib/api'
 import PlayerHeader from '../PlayerHeader'
@@ -43,6 +43,7 @@ export default function LocationView({ slug, children }) {
   const cityLinks = [
     { to: '/locations/weapon_shop', label: 'Оружейная' },
     { to: '/locations/shop_of_artifacts', label: 'Артефакты' },
+    { to: '/tool_items/shop', label: 'Мастерская', skipMove: true },
     { to: '/locations/wayward_pines', label: 'Выйти из города' },
   ]
 
@@ -75,7 +76,14 @@ export default function LocationView({ slug, children }) {
                 <a
                   key={link.to}
                   href={link.to}
-                  onClick={(e) => handleLocationMove(e, targetSlug)}
+                  onClick={(e) => {
+                    if (link.skipMove) {
+                      e.preventDefault()
+                      navigate(link.to)
+                      return
+                    }
+                    handleLocationMove(e, targetSlug)
+                  }}
                   className="fantasy-button"
                 >
                   {link.label}

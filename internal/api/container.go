@@ -22,6 +22,8 @@ type Container struct {
 	EquipmentItemRepo *repository.EquipmentItemRepository
 	InventoryRepo     *repository.InventoryRepository
 	PotionRepo        *repository.PotionRepository
+	ToolItemRepo      *repository.ToolItemRepository
+	ResourceRepo      *repository.ResourceRepository
 	BotRepo           *repository.BotRepository
 	FightRepo         *repository.FightRepository
 	RoundRepo         *repository.RoundRepository
@@ -43,6 +45,11 @@ type Container struct {
 	PotionTakeOnService         *services.PotionTakeOnService
 	PotionTakeOffService        *services.PotionTakeOffService
 	PotionUseService            *services.PotionUseService
+	ToolItemBuyService          *services.ToolItemBuyService
+	ToolItemSellService         *services.ToolItemSellService
+	ToolItemTakeOnService       *services.ToolItemTakeOnService
+	ToolItemTakeOffService      *services.ToolItemTakeOffService
+	ResourceService             *services.ResourceService
 	InventoryService            *services.InventoryService
 	BotService                  *services.BotService
 	FightService                *services.FightService
@@ -60,6 +67,8 @@ func NewContainer(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) (*Containe
 	equipmentItemRepo := repository.NewEquipmentItemRepository(db)
 	inventoryRepo := repository.NewInventoryRepository(db)
 	potionRepo := repository.NewPotionRepository(db)
+	toolItemRepo := repository.NewToolItemRepository(db)
+	resourceRepo := repository.NewResourceRepository(db)
 	botRepo := repository.NewBotRepository(db)
 	fightRepo := repository.NewFightRepository(db)
 	roundRepo := repository.NewRoundRepository(db)
@@ -81,6 +90,8 @@ func NewContainer(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) (*Containe
 		EquipmentItemRepo: equipmentItemRepo,
 		InventoryRepo:     inventoryRepo,
 		PotionRepo:        potionRepo,
+		ToolItemRepo:      toolItemRepo,
+		ResourceRepo:      resourceRepo,
 		BotRepo:           botRepo,
 		FightRepo:         fightRepo,
 		RoundRepo:         roundRepo,
@@ -95,13 +106,18 @@ func NewContainer(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) (*Containe
 		EquipmentItemService:        services.NewEquipmentItemService(equipmentItemRepo),
 		EquipmentItemBuyService:     services.NewEquipmentItemBuyService(db, equipmentItemRepo, inventoryRepo, userRepo),
 		EquipmentItemSellService:    services.NewEquipmentItemSellService(db, equipmentItemRepo, inventoryRepo, userRepo),
-		EquipmentItemTakeOnService:  services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		EquipmentItemTakeOnService:  services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo, toolItemRepo),
 		EquipmentItemTakeOffService: services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo),
 		PotionBuyService:            services.NewPotionBuyService(db, potionRepo, inventoryRepo, userRepo),
 		PotionSellService:           services.NewPotionSellService(db, potionRepo, userRepo),
 		PotionTakeOnService:         services.NewPotionTakeOnService(db, potionRepo, inventoryRepo, userRepo),
 		PotionTakeOffService:        services.NewPotionTakeOffService(db, potionRepo, inventoryRepo, userRepo),
 		PotionUseService:            services.NewPotionUseService(db, potionRepo, userRepo),
+		ToolItemBuyService:          services.NewToolItemBuyService(db, toolItemRepo, inventoryRepo, userRepo),
+		ToolItemSellService:         services.NewToolItemSellService(db, toolItemRepo, userRepo),
+		ToolItemTakeOnService:       services.NewToolItemTakeOnService(db, toolItemRepo, inventoryRepo, equipmentItemRepo, userRepo),
+		ToolItemTakeOffService:      services.NewToolItemTakeOffService(db, inventoryRepo, userRepo),
+		ResourceService:             services.NewResourceService(locationRepo, resourceRepo, userRepo, inventoryRepo),
 		InventoryService:            services.NewInventoryService(inventoryRepo),
 		BotService:                  services.NewBotService(locationRepo, botRepo, userRepo, fightRepo, roundRepo),
 		FightService:                services.NewFightService(db, fightRepo, botRepo, userRepo, roundRepo),

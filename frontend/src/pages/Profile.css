@@ -231,7 +231,7 @@
 .profile-inventory-content .equipment-items-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 14px;
   padding: 0;
   align-items: stretch;
 }
@@ -240,11 +240,11 @@
   background: linear-gradient(145deg, #fff9f0, #f5e6d3);
   border: 2px solid #8b6f47;
   border-radius: 8px;
-  padding: 15px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 360px;
+  min-height: 320px;
   height: 100%;
   box-shadow: 
     0 4px 8px rgba(0, 0, 0, 0.15),
@@ -252,9 +252,9 @@
 }
 
 .profile-inventory-content .equipment-item-image-frame {
-  width: 96px;
-  height: 96px;
-  margin-bottom: 12px;
+  width: 124px;
+  height: 124px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,10 +279,10 @@
 }
 
 .profile-inventory-content .equipment-item-info h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #5a4730;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-family: 'Cinzel', serif;
   white-space: nowrap;
   overflow: hidden;
@@ -291,23 +291,23 @@
 }
 
 .profile-inventory-content .equipment-item-stats {
-  font-size: 12px;
+  font-size: 11px;
   color: #6b5537;
-  margin-bottom: 10px;
-  min-height: 88px;
+  margin-bottom: 8px;
+  min-height: 56px;
 }
 
 .profile-inventory-content .equipment-item-stats > div {
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .profile-inventory-content .equipment-item-equip-button {
   background: linear-gradient(145deg, #8b6f47, #6b5537);
   border: 2px solid #5a4730;
   border-radius: 4px;
-  padding: 6px 16px;
+  padding: 5px 12px;
   color: #f5e6d3;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   font-family: 'Cinzel', serif;
   cursor: pointer;
@@ -336,7 +336,7 @@
 .equipment-item-buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   margin-top: auto;
 }
@@ -345,9 +345,9 @@
   background: linear-gradient(145deg, #d97706, #b45309);
   border: 2px solid #92400e;
   border-radius: 4px;
-  padding: 6px 16px;
+  padding: 5px 12px;
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   font-family: 'Cinzel', serif;
   cursor: pointer;

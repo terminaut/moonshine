@@ -35,7 +35,7 @@ func setupEquipmentItemHandlerTest(t *testing.T) (*EquipmentItemHandler, *sqlx.D
 		services.NewEquipmentItemService(equipmentItemRepo),
 		services.NewEquipmentItemBuyService(db, equipmentItemRepo, inventoryRepo, userRepo),
 		services.NewEquipmentItemSellService(db, equipmentItemRepo, inventoryRepo, userRepo),
-		services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo),
+		services.NewEquipmentItemTakeOnService(db, equipmentItemRepo, inventoryRepo, userRepo, repository.NewToolItemRepository(db)),
 		services.NewEquipmentItemTakeOffService(db, equipmentItemRepo, inventoryRepo, userRepo),
 		equipmentItemRepo,
 		nil,
@@ -227,7 +227,7 @@ func TestEquipmentItemHandler_TakeOffEquipmentItem(t *testing.T) {
 	itemRepo := repository.NewEquipmentItemRepository(db)
 	invRepo := repository.NewInventoryRepository(db)
 	invRepo.Create(&domain.Inventory{UserID: user.ID, EquipmentItemID: &item.ID})
-	takeOnSvc := services.NewEquipmentItemTakeOnService(db, itemRepo, invRepo, repository.NewUserRepository(db))
+	takeOnSvc := services.NewEquipmentItemTakeOnService(db, itemRepo, invRepo, repository.NewUserRepository(db), repository.NewToolItemRepository(db))
 	err := takeOnSvc.TakeOnEquipmentItem(context.Background(), user.ID, item.ID)
 	require.NoError(t, err)
 

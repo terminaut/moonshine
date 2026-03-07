@@ -37,7 +37,8 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *sqlx.DB, *domain.User, e
 	userService := services.NewUserService(userRepo, avatarRepo, locRepo, nil)
 	inventoryService := services.NewInventoryService(inventoryRepo)
 	fightChecker := NewFightChecker(userRepo)
-	handler := NewUserHandler(userService, inventoryService, userRepo, equipmentItemRepo, potionRepo, fightChecker)
+	toolItemRepo := repository.NewToolItemRepository(db)
+	handler := NewUserHandler(userService, inventoryService, userRepo, equipmentItemRepo, potionRepo, toolItemRepo, fightChecker)
 	loc := &domain.Location{
 		Name:     fmt.Sprintf("Loc %d", time.Now().UnixNano()),
 		Slug:     fmt.Sprintf("loc-%d", time.Now().UnixNano()),

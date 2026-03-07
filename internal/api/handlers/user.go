@@ -19,6 +19,7 @@ type UserHandler struct {
 	userRepo          *repository.UserRepository
 	equipmentItemRepo *repository.EquipmentItemRepository
 	potionRepo        *repository.PotionRepository
+	toolItemRepo      *repository.ToolItemRepository
 	fightChecker      *FightChecker
 }
 
@@ -28,6 +29,7 @@ func NewUserHandler(
 	userRepo *repository.UserRepository,
 	equipmentItemRepo *repository.EquipmentItemRepository,
 	potionRepo *repository.PotionRepository,
+	toolItemRepo *repository.ToolItemRepository,
 	fightChecker *FightChecker,
 ) *UserHandler {
 	return &UserHandler{
@@ -36,6 +38,7 @@ func NewUserHandler(
 		userRepo:          userRepo,
 		equipmentItemRepo: equipmentItemRepo,
 		potionRepo:        potionRepo,
+		toolItemRepo:      toolItemRepo,
 		fightChecker:      fightChecker,
 	}
 }
@@ -73,9 +76,21 @@ func (h *UserHandler) GetUserInventory(c echo.Context) error {
 		return ErrInternalServerError(c)
 	}
 
+	toolItems, err := h.inventoryService.GetUserInventoryToolItems(c.Request().Context(), userID)
+	if err != nil {
+		return ErrInternalServerError(c)
+	}
+
+	resources, err := h.inventoryService.GetUserInventoryResources(c.Request().Context(), userID)
+	if err != nil {
+		return ErrInternalServerError(c)
+	}
+
 	return c.JSON(http.StatusOK, dto.InventoryResponse{
 		EquipmentItems: dto.EquipmentItemsFromDomain(items),
 		Potions:        dto.PotionsFromDomain(potions),
+		ToolItems:      dto.ToolItemsFromDomain(toolItems),
+		Resources:      dto.ResourcesFromDomain(resources),
 	})
 }
 
@@ -132,6 +147,13 @@ func (h *UserHandler) GetUserEquippedItems(c echo.Context) error {
 					result[s.name] = d
 				}
 			}
+		}
+	}
+
+	if user.ToolItemID != nil {
+		toolItem, err := h.toolItemRepo.FindByID(*user.ToolItemID)
+		if err == nil {
+			result["tool"] = dto.ToolItemFromDomain(toolItem)
 		}
 	}
 

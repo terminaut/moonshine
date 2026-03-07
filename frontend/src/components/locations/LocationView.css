@@ -27,15 +27,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 30px;
+  padding: 0 20px;
   border-bottom: 2px solid #e0e0e0;
-  gap: 20px;
+  gap: 12px;
 }
 
 
 .location-nav-links {
   display: flex;
-  gap: 15px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -43,7 +43,7 @@
   background: linear-gradient(145deg, #8b6f47, #6b5537);
   border: 2px solid #5a4730;
   border-radius: 6px;
-  padding: 12px 14px;
+  padding: 9px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -75,23 +75,23 @@
 }
 
 .logout-door-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
 .fantasy-button {
   display: inline-block;
-  padding: 12px 24px;
+  padding: 9px 14px;
   background: linear-gradient(145deg, #8b6f47, #6b5537);
   color: #f5e6d3;
   text-decoration: none;
   border: 2px solid #5a4730;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.4px;
   box-shadow: 
     0 4px 6px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -122,4 +122,3 @@
 .location-content {
   padding: 30px;
 }
-

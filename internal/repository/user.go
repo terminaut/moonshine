@@ -58,7 +58,7 @@ func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
-			users.potion1_id, users.potion2_id, users.potion3_id,
+			users.tool_item_id, users.potion1_id, users.potion2_id, users.potion3_id,
 			COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id
@@ -86,7 +86,7 @@ func (r *UserRepository) FindByUsername(username string) (*domain.User, error) {
 			users.neck_equipment_item_id, users.weapon_equipment_item_id, users.shield_equipment_item_id,
 			users.legs_equipment_item_id, users.feet_equipment_item_id, users.arms_equipment_item_id,
 			users.hands_equipment_item_id, users.ring1_equipment_item_id, users.ring2_equipment_item_id,
-			users.potion1_id, users.potion2_id, users.potion3_id,
+			users.tool_item_id, users.potion1_id, users.potion2_id, users.potion3_id,
 			COALESCE(avatars.image, '') as avatar
 		FROM users
 		LEFT JOIN avatars ON avatars.id = users.avatar_id

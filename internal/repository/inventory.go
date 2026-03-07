@@ -2,15 +2,9 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
-
 	"moonshine/internal/domain"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrInventoryNotFound = errors.New("inventory item not found")
 )
 
 type dbInterface interface {
@@ -29,8 +23,8 @@ func NewInventoryRepository(db dbInterface) *InventoryRepository {
 
 func (r *InventoryRepository) Create(inventory *domain.Inventory) error {
 	query := `
-		INSERT INTO inventory (user_id, equipment_item_id, potion_id)
-		VALUES ($1, $2, $3)
+		INSERT INTO inventory (user_id, equipment_item_id, potion_id, tool_item_id, resource_id)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at
 	`
 
@@ -38,6 +32,8 @@ func (r *InventoryRepository) Create(inventory *domain.Inventory) error {
 		inventory.UserID,
 		inventory.EquipmentItemID,
 		inventory.PotionID,
+		inventory.ToolItemID,
+		inventory.ResourceID,
 	).Scan(&inventory.ID, &inventory.CreatedAt)
 	if err != nil {
 		return err
@@ -105,6 +101,71 @@ func (r *InventoryRepository) HasPotion(userID, potionID uuid.UUID) (bool, error
 		return false, err
 	}
 	return exists, nil
+}
+
+func (r *InventoryRepository) FindToolItemsByUserID(userID uuid.UUID) ([]*domain.ToolItem, error) {
+	query := `
+		SELECT
+			ti.id, ti.created_at, ti.deleted_at, ti.name, ti.slug, ti.price,
+			ti.tool_category_id, COALESCE(ti.image, '') as image
+		FROM inventory i
+		INNER JOIN tool_items ti ON i.tool_item_id = ti.id
+		WHERE i.user_id = $1
+			AND i.deleted_at IS NULL
+			AND ti.deleted_at IS NULL
+		ORDER BY ti.name ASC
+	`
+
+	var items []*domain.ToolItem
+	err := r.db.Select(&items, query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+func (r *InventoryRepository) FindResourcesByUserID(userID uuid.UUID) ([]*domain.Resource, error) {
+	query := `
+		SELECT
+			r.id,
+			r.created_at,
+			r.deleted_at,
+			r.name,
+			r.slug,
+			r.tool_category_id,
+			r.tool_item_id,
+			'00000000-0000-0000-0000-000000000000'::uuid AS location_id,
+			COALESCE(r.image, '') as image
+		FROM inventory i
+		INNER JOIN resources r ON i.resource_id = r.id
+		WHERE i.user_id = $1
+			AND i.deleted_at IS NULL
+			AND r.deleted_at IS NULL
+		ORDER BY r.name ASC
+	`
+
+	var resources []*domain.Resource
+	err := r.db.Select(&resources, query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resources, nil
+}
+
+func (r *InventoryRepository) DeleteOneToolItem(userID, toolItemID uuid.UUID) error {
+	query := `
+		DELETE FROM inventory
+		WHERE id = (
+			SELECT id
+			FROM inventory
+			WHERE user_id = $1 AND tool_item_id = $2 AND deleted_at IS NULL
+			LIMIT 1
+		)
+	`
+	_, err := r.db.Exec(query, userID, toolItemID)
+	return err
 }
 
 func (r *InventoryRepository) DeleteOnePotion(userID, potionID uuid.UUID) error {

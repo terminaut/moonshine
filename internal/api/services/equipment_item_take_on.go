@@ -23,6 +23,7 @@ type EquipmentItemTakeOnService struct {
 	equipmentItemRepo *repository.EquipmentItemRepository
 	inventoryRepo     *repository.InventoryRepository
 	userRepo          *repository.UserRepository
+	toolItemRepo      *repository.ToolItemRepository
 }
 
 func NewEquipmentItemTakeOnService(
@@ -30,12 +31,14 @@ func NewEquipmentItemTakeOnService(
 	equipmentItemRepo *repository.EquipmentItemRepository,
 	inventoryRepo *repository.InventoryRepository,
 	userRepo *repository.UserRepository,
+	toolItemRepo *repository.ToolItemRepository,
 ) *EquipmentItemTakeOnService {
 	return &EquipmentItemTakeOnService{
 		db:                db,
 		equipmentItemRepo: equipmentItemRepo,
 		inventoryRepo:     inventoryRepo,
 		userRepo:          userRepo,
+		toolItemRepo:      toolItemRepo,
 	}
 }
 
@@ -155,6 +158,22 @@ func (s *EquipmentItemTakeOnService) TakeOnEquipmentItem(ctx context.Context, us
 		}
 		inventoryRepo := repository.NewInventoryRepository(tx)
 		err = inventoryRepo.Create(inventory)
+		if err != nil {
+			return err
+		}
+	}
+
+	if equipmentType == "weapon" && user.ToolItemID != nil {
+		invRepo := repository.NewInventoryRepository(tx)
+		err = invRepo.Create(&domain.Inventory{
+			UserID:     userID,
+			ToolItemID: user.ToolItemID,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`UPDATE users SET tool_item_id = NULL WHERE id = $1 AND deleted_at IS NULL`, userID)
 		if err != nil {
 			return err
 		}

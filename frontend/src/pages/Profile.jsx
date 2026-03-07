@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../components/PlayerHeader'
 import EquipmentDisplay from '../components/EquipmentDisplay'
 import { useAuth } from '../context/AuthContext'
-import { avatarAPI, equipmentAPI, potionsAPI, userAPI } from '../lib/api'
+import { avatarAPI, equipmentAPI, potionsAPI, toolItemsAPI, userAPI } from '../lib/api'
 import './EquipmentItems.css'
 import './Profile.css'
 
@@ -15,7 +15,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(!authUser)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('inventory')
-  const [inventory, setInventory] = useState({ equipmentItems: [], potions: [] })
+  const [inventory, setInventory] = useState({ equipmentItems: [], potions: [], toolItems: [], resources: [] })
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [equippedItems, setEquippedItems] = useState({})
   const [avatars, setAvatars] = useState([])
@@ -44,6 +44,13 @@ export default function Profile() {
     setNotification({ message, type })
   }
 
+  const toInventoryState = (data) => ({
+    equipmentItems: data?.equipmentItems || [],
+    potions: data?.potions || [],
+    toolItems: data?.toolItems || [],
+    resources: data?.resources || [],
+  })
+
   const fetchUserData = useCallback(() => {
     return userAPI.getCurrentUser()
       .then((userData) => {
@@ -51,11 +58,17 @@ export default function Profile() {
         return userData
       })
       .catch((err) => {
+        if (err.message.includes('Unauthorized')) {
+          logout()
+          localStorage.clear()
+          navigate('/signin', { replace: true })
+          return null
+        }
         console.error('[Profile] Error loading profile:', err)
         setError('Ошибка загрузки профиля')
         throw err
       })
-  }, [])
+  }, [logout, navigate])
 
   useEffect(() => {
     let mounted = true
@@ -63,8 +76,8 @@ export default function Profile() {
     const loadData = async () => {
       setLoading(true)
       try {
-        await fetchUserData()
-        if (!mounted) return
+        const userData = await fetchUserData()
+        if (!userData || !mounted) return
         
         userAPI.getEquippedItems()
           .then((equipped) => {
@@ -102,15 +115,12 @@ export default function Profile() {
       setInventoryLoading(true)
       userAPI.getInventory()
         .then((data) => {
-          setInventory({
-            equipmentItems: data.equipmentItems || [],
-            potions: data.potions || [],
-          })
+          setInventory(toInventoryState(data))
           setInventoryLoading(false)
         })
         .catch((err) => {
           console.error('[Profile] Error loading inventory:', err)
-          setInventory({ equipmentItems: [], potions: [] })
+          setInventory(toInventoryState(null))
           setInventoryLoading(false)
         })
     } else if (activeTab === 'settings') {
@@ -173,7 +183,7 @@ export default function Profile() {
       if (updatedUser) {
         setUser(updatedUser)
       }
-      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setInventory(toInventoryState(data))
       setEquippedItems(equipped)
     } catch (error) {
       console.error('[Profile] Error equipping item:', error)
@@ -197,7 +207,9 @@ export default function Profile() {
   }
 
   const handleTakeOff = async (slotName) => {
-    const equippedItem = equippedItems[slotName] || equippedItems[slotName.toLowerCase()]
+    const directItem = equippedItems[slotName] || equippedItems[slotName.toLowerCase()]
+    const isToolInWeaponSlot = slotName === 'weapon' && !directItem && !!(equippedItems.tool || equippedItems.toolItem || equippedItems.tool_item)
+    const equippedItem = directItem || (isToolInWeaponSlot ? (equippedItems.tool || equippedItems.toolItem || equippedItems.tool_item) : null)
     if (!equippedItem) {
       return
     }
@@ -212,6 +224,8 @@ export default function Profile() {
       const isPotionSlot = slotName.startsWith('potion')
       if (isPotionSlot) {
         await potionsAPI.takeOff(slotName)
+      } else if (isToolInWeaponSlot) {
+        await toolItemsAPI.takeOff()
       } else {
         await equipmentAPI.takeOff(slotName)
       }
@@ -225,7 +239,7 @@ export default function Profile() {
       if (updatedUser) {
         setUser(updatedUser)
       }
-      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setInventory(toInventoryState(data))
       setEquippedItems(equipped)
     } catch (error) {
       console.error('[Profile] Error removing item:', error)
@@ -272,7 +286,7 @@ export default function Profile() {
       await equipmentAPI.sell(item.slug)
       const data = await userAPI.getInventory()
       await refetchUser()
-      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setInventory(toInventoryState(data))
       showNotification(`Продано за ${item.price} золота`, 'success')
     } catch (error) {
       console.error('[Profile] Error selling item:', error)
@@ -314,7 +328,7 @@ export default function Profile() {
       if (updatedUser) {
         setUser(updatedUser)
       }
-      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setInventory(toInventoryState(data))
       setEquippedItems(equipped)
       showNotification('Эликсир надет!', 'success')
     } catch (error) {
@@ -336,7 +350,7 @@ export default function Profile() {
       await potionsAPI.sell(potion.slug)
       const data = await userAPI.getInventory()
       await refetchUser()
-      setInventory({ equipmentItems: data.equipmentItems || [], potions: data.potions || [] })
+      setInventory(toInventoryState(data))
       showNotification(`Эликсир продан за ${getPotionSellPrice(potion.price)} золота`, 'success')
     } catch (error) {
       console.error('[Profile] Error selling potion:', error)
@@ -358,6 +372,10 @@ export default function Profile() {
     if (p.startsWith('/')) p = p.slice(1)
     p = p.replace(/^frontend\/assets\/images\//, '')
     if (p.startsWith('assets/images/')) p = p.replace(/^assets\/images\//, '')
+    if (/^tool_items\/[^/]+\/[^/]+$/.test(p)) {
+      const parts = p.split('/')
+      p = `tool_items/${parts[2]}`
+    }
     const normalizedPath = `/assets/images/${p}`
     if (bustAvatarCache && p.startsWith('players/avatars/')) {
       return `${normalizedPath}?v=${avatarCacheBuster}`
@@ -368,6 +386,76 @@ export default function Profile() {
   const handleSlotClick = (slotName) => {
     if (!equipping) {
       handleTakeOff(slotName)
+    }
+  }
+
+  const handleToolTakeOn = async (toolItem) => {
+    if (!toolItem.slug) {
+      showNotification('Slug инструмента не определен', 'error')
+      return
+    }
+
+    if (updateInProgressRef.current) {
+      return
+    }
+
+    try {
+      updateInProgressRef.current = true
+      setEquipping(true)
+      await toolItemsAPI.takeOn(toolItem.slug)
+
+      const [data, equipped, updatedUser] = await Promise.all([
+        userAPI.getInventory(),
+        userAPI.getEquippedItems(),
+        refetchUser(),
+      ])
+
+      if (updatedUser) {
+        setUser(updatedUser)
+      }
+      setInventory(toInventoryState(data))
+      setEquippedItems(equipped)
+      showNotification('Инструмент надет!', 'success')
+    } catch (error) {
+      console.error('[Profile] Error equipping tool item:', error)
+      let errorMessage = 'Неизвестная ошибка'
+      if (error.message.includes('not in inventory')) {
+        errorMessage = 'Инструмент не в инвентаре'
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Инструмент не найден'
+      } else {
+        errorMessage = error.message
+      }
+      showNotification(errorMessage, 'error')
+    } finally {
+      updateInProgressRef.current = false
+      setEquipping(false)
+    }
+  }
+
+  const handleToolSell = async (toolItem) => {
+    if (!toolItem.slug) {
+      showNotification('Slug инструмента не определен', 'error')
+      return
+    }
+
+    try {
+      await toolItemsAPI.sell(toolItem.slug)
+      const data = await userAPI.getInventory()
+      await refetchUser()
+      setInventory(toInventoryState(data))
+      showNotification(`Инструмент продан за ${toolItem.price} золота`, 'success')
+    } catch (error) {
+      console.error('[Profile] Error selling tool item:', error)
+      let errorMessage = 'Неизвестная ошибка'
+      if (error.message.includes('not owned')) {
+        errorMessage = 'У вас нет этого инструмента'
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Инструмент не найден'
+      } else {
+        errorMessage = error.message
+      }
+      showNotification(errorMessage, 'error')
     }
   }
 
@@ -445,7 +533,7 @@ export default function Profile() {
                 <div>Загрузка инвентаря...</div>
               ) : (
                 <div className="equipment-items-list">
-                  {inventory.equipmentItems.length === 0 && inventory.potions.length === 0 ? (
+                  {inventory.equipmentItems.length === 0 && inventory.potions.length === 0 && inventory.toolItems.length === 0 && inventory.resources.length === 0 ? (
                     <p>Инвентарь пуст</p>
                   ) : (
                     <>
@@ -523,6 +611,59 @@ export default function Profile() {
                               >
                                 Продать ({getPotionSellPrice(potion.price)})
                               </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {inventory.toolItems.map((toolItem, index) => (
+                        <div key={`tool-${toolItem.id}-${toolItem.slug}-${index}`} className="equipment-item-card">
+                          {toolItem.image && (
+                            <div className="equipment-item-image-frame">
+                              <img
+                                src={normalizeImagePath(toolItem.image)}
+                                alt={toolItem.name}
+                                className="equipment-item-image"
+                              />
+                            </div>
+                          )}
+                          <div className="equipment-item-info">
+                            <h3>{toolItem.name}</h3>
+                            <div className="equipment-item-stats">
+                              <div>Цена: {toolItem.price} зол.</div>
+                            </div>
+                            <div className="equipment-item-buttons">
+                              <button
+                                className="equipment-item-equip-button"
+                                onClick={() => handleToolTakeOn(toolItem)}
+                                disabled={equipping}
+                              >
+                                {equipping ? '...' : 'Надеть'}
+                              </button>
+                              <button
+                                className="equipment-item-sell-button"
+                                onClick={() => handleToolSell(toolItem)}
+                              >
+                                Продать ({toolItem.price})
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {inventory.resources.map((resource, index) => (
+                        <div key={`res-${resource.id}-${resource.slug}-${index}`} className="equipment-item-card">
+                          {resource.image && (
+                            <div className="equipment-item-image-frame">
+                              <img
+                                src={normalizeImagePath(resource.image)}
+                                alt={resource.name}
+                                className="equipment-item-image"
+                              />
+                            </div>
+                          )}
+                          <div className="equipment-item-info">
+                            <h3>{resource.name}</h3>
+                            <div className="equipment-item-stats">
+                              <div>Ресурс</div>
                             </div>
                           </div>
                         </div>

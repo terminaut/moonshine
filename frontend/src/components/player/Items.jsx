@@ -122,11 +122,9 @@ export default function Items({ player }) {
           <div className="tool_items">
             {player.tool_items?.length > 0 ? (
               player.tool_items.map((item) => {
-                const categoryName = item.category?.name?.toLowerCase()
-                const playerSkill = player[`${categoryName}_skill`] || 0
                 return (
                   <div key={item.id} className="item row">
-                    <ToolItem item={item} playerSkill={playerSkill} />
+                    <ToolItem item={item} />
                     <a onClick={() => putOnItem(item, 'tool')} className="btn btn-info">Put on</a>
                     <a onClick={() => sellItem(item, 'tool')} className="btn btn-info">
                       Sell for {item.sell_price} gold

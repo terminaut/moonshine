@@ -58,7 +58,8 @@ export const userAPI = {
 
     const data = await parseResponse(response)
     if (!response.ok) {
-      if (response.status === 401) {
+      const userNotFound = response.status === 404 && data?.error === 'user not found'
+      if (response.status === 401 || userNotFound) {
         localStorage.removeItem('token')
         throw new Error('Unauthorized')
       }
@@ -277,6 +278,77 @@ export const potionsAPI = {
   },
 }
 
+export const toolItemsAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/tool_items`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        throw new Error('Unauthorized')
+      }
+      throw new Error(data?.error || 'Failed to fetch tool items')
+    }
+    return data || []
+  },
+
+  buy: async (itemSlug) => {
+    const response = await fetch(`${API_BASE_URL}/tool_items/${itemSlug}/buy`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to buy tool item')
+    }
+    return data
+  },
+
+  sell: async (itemSlug) => {
+    const response = await fetch(`${API_BASE_URL}/tool_items/${itemSlug}/sell`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to sell tool item')
+    }
+    return data
+  },
+
+  takeOn: async (itemSlug) => {
+    const response = await fetch(`${API_BASE_URL}/tool_items/${itemSlug}/take_on`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to equip tool item')
+    }
+    return data
+  },
+
+  takeOff: async () => {
+    const response = await fetch(`${API_BASE_URL}/tool_items/take_off`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to remove tool item')
+    }
+    return data
+  },
+}
+
 export const avatarAPI = {
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/avatars`, {
@@ -359,6 +431,34 @@ export const botAPI = {
     const data = await parseResponse(response)
     if (!response.ok) {
       throw new Error(data?.error || 'Failed to attack bot')
+    }
+    return data
+  },
+}
+
+export const resourceAPI = {
+  getResources: async (locationSlug) => {
+    const response = await fetch(`${API_BASE_URL}/resources/${locationSlug}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to fetch resources')
+    }
+    return data?.resources || []
+  },
+
+  gather: async (resourceSlug) => {
+    const response = await fetch(`${API_BASE_URL}/resources/${resourceSlug}/gather`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data = await parseResponse(response)
+    if (!response.ok) {
+      throw new Error(data?.error || 'Failed to gather resource')
     }
     return data
   },

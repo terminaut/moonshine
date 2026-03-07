@@ -47,8 +47,12 @@ func main() {
 	}
 	defer db.Close()
 
-	seedAvatars(db.DB())
-	seedEquipmentCategories(db.DB())
+	if err := seedAvatars(db.DB()); err != nil {
+		log.Printf("Failed to seed avatars: %v", err)
+	}
+	if err := seedEquipmentCategories(db.DB()); err != nil {
+		log.Printf("Failed to seed equipment categories: %v", err)
+	}
 	if err := seedEquipmentItems(db.DB()); err != nil {
 		log.Printf("Failed to seed equipment items: %v", err)
 	}
@@ -64,7 +68,18 @@ func main() {
 	if err := seedPotions(db.DB()); err != nil {
 		log.Printf("Failed to seed potions: %v", err)
 	}
-	seedUsers(db.DB())
+	if err := seedToolCategories(db.DB()); err != nil {
+		log.Printf("Failed to seed tool categories: %v", err)
+	}
+	if err := seedToolItems(db.DB()); err != nil {
+		log.Printf("Failed to seed tool items: %v", err)
+	}
+	if err := seedResources(db.DB()); err != nil {
+		log.Printf("Failed to seed resources: %v", err)
+	}
+	if err := seedUsers(db.DB()); err != nil {
+		log.Printf("Failed to seed users: %v", err)
+	}
 
 	log.Println("Seed process completed!")
 }
@@ -75,8 +90,12 @@ func truncateTables(db *sqlx.DB) error {
 	tables := []string{
 		"inventory",
 		"potions",
+		"location_resources",
 		"location_bots",
 		"location_locations",
+		"resources",
+		"tool_items",
+		"tool_categories",
 		"equipment_items",
 		"equipment_categories",
 		"bots",
@@ -96,23 +115,23 @@ func truncateTables(db *sqlx.DB) error {
 	return nil
 }
 
-func seedAvatars(db *sqlx.DB) {
+func seedAvatars(db *sqlx.DB) error {
 	log.Println("Seeding avatars...")
 
 	avatarRepo := repository.NewAvatarRepository(db)
 
 	avatarsDir := "frontend/assets/images/players/avatars"
 	if _, err := os.Stat(avatarsDir); os.IsNotExist(err) {
-		return
+		return nil
 	}
 
 	files, err := filepath.Glob(filepath.Join(avatarsDir, "*.png"))
 	if err != nil {
-		return
+		return fmt.Errorf("failed to read avatars directory: %w", err)
 	}
 
 	if len(files) == 0 {
-		return
+		return nil
 	}
 
 	count := 0
@@ -132,7 +151,7 @@ func seedAvatars(db *sqlx.DB) {
 		}
 
 		if err := avatarRepo.Create(avatar); err != nil {
-			continue
+			return fmt.Errorf("failed to create avatar %s: %w", imagePath, err)
 		}
 
 		count++
@@ -140,9 +159,10 @@ func seedAvatars(db *sqlx.DB) {
 	}
 
 	log.Printf("Successfully created %d avatars", count)
+	return nil
 }
 
-func seedUsers(db *sqlx.DB) {
+func seedUsers(db *sqlx.DB) error {
 	log.Println("Seeding users...")
 
 	userRepo := repository.NewUserRepository(db)
@@ -150,12 +170,12 @@ func seedUsers(db *sqlx.DB) {
 	existingUser, err := userRepo.FindByUsername("admin")
 	if err == nil && existingUser != nil {
 		log.Println("User 'admin' already exists, skipping")
-		return
+		return nil
 	}
 
 	hashedPassword, err := util.HashPassword("password")
 	if err != nil {
-		log.Fatalf("Failed to hash password: %v", err)
+		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	avatarRepo := repository.NewAvatarRepository(db)
@@ -172,7 +192,7 @@ func seedUsers(db *sqlx.DB) {
 
 	moonshineLocation, err := locationRepo.FindStartLocation()
 	if err != nil {
-		log.Fatalf("Moonshine location not found, please seed locations first: %v", err)
+		return fmt.Errorf("moonshine location not found, please seed locations first: %w", err)
 	}
 
 	user := &domain.User{
@@ -200,10 +220,11 @@ func seedUsers(db *sqlx.DB) {
 	log.Printf("Assigned location ID %s (Moonshine) to user", moonshineLocation.ID.String())
 
 	if err := userRepo.Create(user); err != nil {
-		log.Fatalf("Failed to create user: %v", err)
+		return fmt.Errorf("failed to create user: %w", err)
 	}
 
 	log.Printf("Successfully created user: %s (%s)", user.Username, user.Email)
+	return nil
 }
 
 func seedLocations(db *sqlx.DB) error {
@@ -617,7 +638,154 @@ func seedPotions(db *sqlx.DB) error {
 	return nil
 }
 
-func seedEquipmentCategories(db *sqlx.DB) {
+func seedToolCategories(db *sqlx.DB) error {
+	log.Println("Seeding tool categories...")
+
+	categories := []struct {
+		name string
+		typ  string
+	}{
+		{"Herb", "herb"},
+	}
+
+	for _, cat := range categories {
+		var existingID uuid.UUID
+		err := db.QueryRow("SELECT id FROM tool_categories WHERE type = $1", cat.typ).Scan(&existingID)
+		if err == nil {
+			log.Printf("Tool category %s already exists, skipping", cat.name)
+			continue
+		}
+
+		categoryID := uuid.New()
+		query := `INSERT INTO tool_categories (id, name, type) VALUES ($1, $2, $3)`
+		if _, err := db.Exec(query, categoryID, cat.name, cat.typ); err != nil {
+			return fmt.Errorf("failed to create tool category %s: %w", cat.name, err)
+		}
+		log.Printf("Created tool category: %s (%s)", cat.name, cat.typ)
+	}
+
+	log.Println("Tool categories seeding completed!")
+	return nil
+}
+
+func seedToolItems(db *sqlx.DB) error {
+	log.Println("Seeding tool items...")
+
+	var herbCatID uuid.UUID
+	if err := db.QueryRow("SELECT id FROM tool_categories WHERE type = 'herb'").Scan(&herbCatID); err != nil {
+		return fmt.Errorf("herb tool category not found: %w", err)
+	}
+
+	items := []struct {
+		name           string
+		slug           string
+		price          uint
+		toolCategoryID uuid.UUID
+		image          string
+	}{
+		{"Серп", "sickle", 50, herbCatID, "tool_items/sickle.png"},
+	}
+
+	for _, item := range items {
+		var existingID uuid.UUID
+		err := db.QueryRow("SELECT id FROM tool_items WHERE slug = $1 AND deleted_at IS NULL", item.slug).Scan(&existingID)
+		if err == nil {
+			log.Printf("Tool item %s already exists, skipping", item.name)
+			continue
+		}
+
+		itemID := uuid.New()
+		query := `INSERT INTO tool_items (id, name, slug, price, tool_category_id, image) VALUES ($1, $2, $3, $4, $5, $6)`
+		if _, err := db.Exec(query, itemID, item.name, item.slug, item.price, item.toolCategoryID, item.image); err != nil {
+			return fmt.Errorf("failed to create tool item %s: %w", item.name, err)
+		}
+		log.Printf("Created tool item: %s (price: %d)", item.name, item.price)
+	}
+
+	log.Println("Tool items seeding completed!")
+	return nil
+}
+
+func seedResources(db *sqlx.DB) error {
+	log.Println("Seeding resources...")
+
+	locationRepo := repository.NewLocationRepository(db)
+	outdoorLocation, err := locationRepo.DefaultOutdoorLocation()
+	if err != nil {
+		return fmt.Errorf("default outdoor location not found: %w", err)
+	}
+
+	var herbCategoryID uuid.UUID
+	if err := db.QueryRow("SELECT id FROM tool_categories WHERE type = 'herb'").Scan(&herbCategoryID); err != nil {
+		return fmt.Errorf("herb tool category not found: %w", err)
+	}
+
+	var sickleID uuid.UUID
+	if err := db.QueryRow("SELECT id FROM tool_items WHERE slug = 'sickle' AND deleted_at IS NULL").Scan(&sickleID); err != nil {
+		return fmt.Errorf("sickle tool item not found: %w", err)
+	}
+
+	resources := []struct {
+		name  string
+		slug  string
+		image string
+	}{
+		{"Солнечник", "sunbloom", "resources/herb/sunbloom.png"},
+		{"Кроволист", "bloodleaf", "resources/herb/bloodleaf.png"},
+		{"Лунная мята", "moonmint", "resources/herb/moonmint.png"},
+	}
+
+	upsertResourceQuery := `
+		INSERT INTO resources (id, name, slug, tool_category_id, tool_item_id, image)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (slug) DO UPDATE SET
+			name = EXCLUDED.name,
+			tool_category_id = EXCLUDED.tool_category_id,
+			tool_item_id = EXCLUDED.tool_item_id,
+			image = EXCLUDED.image,
+			deleted_at = NULL
+		RETURNING id
+	`
+	linkQuery := `INSERT INTO location_resources (id, location_id, resource_id) VALUES ($1, $2, $3)`
+	linkExistsQuery := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM location_resources
+			WHERE location_id = $1 AND resource_id = $2 AND deleted_at IS NULL
+		)
+	`
+
+	for _, resource := range resources {
+		var resourceID uuid.UUID
+		if err := db.QueryRow(
+			upsertResourceQuery,
+			uuid.New(),
+			resource.name,
+			resource.slug,
+			herbCategoryID,
+			sickleID,
+			resource.image,
+		).Scan(&resourceID); err != nil {
+			return fmt.Errorf("failed to upsert resource %s: %w", resource.slug, err)
+		}
+
+		var linked bool
+		if err := db.Get(&linked, linkExistsQuery, outdoorLocation.ID, resourceID); err != nil {
+			return fmt.Errorf("failed to check resource link for %s: %w", resource.slug, err)
+		}
+
+		if !linked {
+			if _, err := db.Exec(linkQuery, uuid.New(), outdoorLocation.ID, resourceID); err != nil {
+				return fmt.Errorf("failed to link resource %s to 29cell: %w", resource.slug, err)
+			}
+		}
+	}
+
+	log.Println("Resources seeding completed!")
+	return nil
+}
+
+func seedEquipmentCategories(db *sqlx.DB) error {
 	log.Println("Seeding equipment categories...")
 
 	categories := []struct {
@@ -648,13 +816,13 @@ func seedEquipmentCategories(db *sqlx.DB) {
 		categoryID := uuid.New()
 		query := `INSERT INTO equipment_categories (id, name, type) VALUES ($1, $2, $3)`
 		if _, err := db.Exec(query, categoryID, cat.name, cat.typ); err != nil {
-			log.Printf("Failed to create equipment category %s: %v", cat.name, err)
-			continue
+			return fmt.Errorf("failed to create equipment category %s: %w", cat.name, err)
 		}
 		log.Printf("Created equipment category: %s (%s)", cat.name, cat.typ)
 	}
 
 	log.Println("Equipment categories seeding completed!")
+	return nil
 }
 
 type equipmentFileInfo struct {

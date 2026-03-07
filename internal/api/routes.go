@@ -95,7 +95,7 @@ func SetupRoutes(e *echo.Echo, c *Container) {
 	apiGroup.Use(echojwt.WithConfig(jwtConfig))
 	apiGroup.Use(jwtMiddleware.ExtractUserIDFromJWT())
 
-	userHandler := handlers.NewUserHandler(c.UserService, c.InventoryService, c.UserRepo, c.EquipmentItemRepo, c.PotionRepo, fightChecker)
+	userHandler := handlers.NewUserHandler(c.UserService, c.InventoryService, c.UserRepo, c.EquipmentItemRepo, c.PotionRepo, c.ToolItemRepo, fightChecker)
 	apiGroup.GET("/user/me", userHandler.GetCurrentUser)
 	apiGroup.PUT("/user/me", userHandler.UpdateCurrentUser)
 	apiGroup.GET("/users/me/inventory", userHandler.GetUserInventory)
@@ -141,6 +141,25 @@ func SetupRoutes(e *echo.Echo, c *Container) {
 	apiGroup.POST("/potions/:slug/buy", potionHandler.BuyPotion)
 	apiGroup.POST("/potions/:slug/sell", potionHandler.SellPotion)
 	apiGroup.POST("/potions/:slug/take_on", potionHandler.TakeOnPotion)
+
+	toolItemHandler := handlers.NewToolItemHandler(
+		c.ToolItemBuyService,
+		c.ToolItemSellService,
+		c.ToolItemTakeOnService,
+		c.ToolItemTakeOffService,
+		c.ToolItemRepo,
+		c.UserCache,
+		fightChecker,
+	)
+	apiGroup.GET("/tool_items", toolItemHandler.GetToolItems)
+	apiGroup.POST("/tool_items/:slug/buy", toolItemHandler.BuyToolItem)
+	apiGroup.POST("/tool_items/:slug/sell", toolItemHandler.SellToolItem)
+	apiGroup.POST("/tool_items/:slug/take_on", toolItemHandler.TakeOnToolItem)
+	apiGroup.POST("/tool_items/take_off", toolItemHandler.TakeOffToolItem)
+
+	resourceHandler := handlers.NewResourceHandler(c.ResourceService, fightChecker)
+	apiGroup.GET("/resources/:location_slug", resourceHandler.GetResources)
+	apiGroup.POST("/resources/:slug/gather", resourceHandler.Gather)
 
 	botHandler := handlers.NewBotHandler(c.BotService, fightChecker)
 	apiGroup.GET("/bots/:location_slug", botHandler.GetBots)

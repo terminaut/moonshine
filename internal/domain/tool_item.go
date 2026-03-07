@@ -4,10 +4,10 @@ import "github.com/google/uuid"
 
 type ToolItem struct {
 	Model
-	Name           string        `json:"name"`
-	Price          uint          `json:"price"`
-	RequiredSkill  uint          `json:"required_skill"`
-	ToolCategoryID uuid.UUID     `json:"tool_category_id"`
+	Name           string        `db:"name" json:"name"`
+	Slug           string        `db:"slug" json:"slug"`
+	Price          uint          `db:"price" json:"price"`
+	ToolCategoryID uuid.UUID     `db:"tool_category_id" json:"tool_category_id"`
 	ToolCategory   *ToolCategory `json:"tool_category,omitempty"`
-	Image          string        `json:"image"`
+	Image          string        `db:"image" json:"image"`
 }
